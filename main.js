@@ -644,9 +644,9 @@ class MemosView extends ItemView {
       head.createSpan({ cls: 'sm-when', text: `${m.fileDay || m.dateText || ''} ${m.time || ''}`.trim() });
       if (m.deleted) head.createSpan({ cls: 'sm-del-mark', text: '已删除' });
       const acts = head.createDiv({ cls: 'sm-acts' });
-      this.addAction(acts, '编辑', 'pencil', () => this.editMemo(m));
-      this.addAction(acts, '复制', 'copy', () => this.copyMemo(m));
-      this.addAction(acts, '删除', 'trash', () => this.deleteMemo(m));
+      this.addCardButton(acts, '编辑', () => this.editMemo(m));
+      this.addCardButton(acts, '复制', () => this.copyMemo(m));
+      this.addCardButton(acts, '删除', () => this.deleteMemo(m));
 
       const bodyEl = card.createDiv({ cls: 'sm-body' });
       try {
@@ -664,7 +664,13 @@ class MemosView extends ItemView {
     this.statusEl.setText(`${shown.length} 条${this.query ? `（共 ${this.memos.length} 条）` : ''} · 已读最近 ${this.days} 天`);
   }
 
-  addAction(parent, title, icon, handler) {
+  /**
+   * 卡片上的小按钮。
+   * ⚠️ 千万别叫 addAction —— 那是 Obsidian `View` 自带的方法（视图头部动作按钮），
+   * 覆盖它会让 Obsidian 构造视图时调到这里：`parent.createEl is not a function`
+   * → 视图创建失败 → 标签页永远显示原始类型名 +「插件不再活动」（2026-10-11 真机事故）。
+   */
+  addCardButton(parent, title, handler) {
     const b = parent.createEl('button', { cls: 'sm-icon sm-btn' });
     b.setAttribute('aria-label', title);
     b.setText(title);

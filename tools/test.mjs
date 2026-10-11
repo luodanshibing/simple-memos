@@ -62,6 +62,24 @@ ok(!/workspace\.on\(/.test(onloadBody), 'onload 不注册常驻 workspace 监听
 ok(/onLayoutReady/.test(onloadBody), '只在布局就绪时补一次善后（一次性回调，不是常驻监听）');
 ok(/onLayoutReady\(\(\) => this\.recoverStaleLeaves\(\)\)/.test(SRC), '布局就绪后自动重建占位标签页');
 ok(/recoverStaleLeaves\(\)/.test(SRC), '有占位标签页的善后方法');
+
+/* ---------- 0b. 视图类的方法名不得撞 Obsidian 的 View API（2026-10-11 真机事故） ---------- */
+const viewBody = (() => {
+  const from = SRC.indexOf('class MemosView extends ItemView');
+  if (from < 0) return '';
+  const to = SRC.indexOf('\n}\n', from);
+  return SRC.slice(from, to);
+})();
+ok(viewBody.length > 200, '取到视图类源码');
+const viewMethods = [];
+const methodRe = /^ {2}([A-Za-z_]\w*)\s*\(/gm;
+let mm;
+while ((mm = methodRe.exec(viewBody)) !== null) viewMethods.push(mm[1]);
+const reserved = ['addAction', 'onResize', 'getState', 'setState', 'onPaneMenu', 'onMoreOptionsMenu', 'getEphemeralState', 'setEphemeralState', 'onLoad', 'onUnload'];
+const clashes = viewMethods.filter((m) => reserved.indexOf(m) >= 0);
+eq(clashes, [], '视图类没有覆盖 Obsidian 的 View API（addAction 等）');
+eq(viewMethods.indexOf('addCardButton') >= 0, true, '卡片按钮用的是自己的方法名 addCardButton');
+eq(/this\.addCardButton\(/.test(SRC), true, '调用处也已改名');
 ok(/registerView/.test(onloadBody), 'onload 只注册视图');
 ok(!/setInterval/.test(SRC), '整个源码没有 setInterval');
 ok(/registerEvent\(this\.app\.vault\.on/.test(SRC), '文件监听挂在视图上（随视图注销）');
