@@ -1,7 +1,7 @@
 {
   "id": "simple-memos",
   "name": "Simple Memos",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "minAppVersion": "1.5.0",
   "description": "轻量备忘：日记或单文件里一键记录，兼容 Thino 旧数据。",
   "author": "luodanshibing",

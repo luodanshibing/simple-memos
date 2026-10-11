@@ -1151,3 +1151,18 @@
 .sm-controls {
   display: none;
 }
+
+/* ---------- v1.4.2 顶部留白：改成题图自己的 margin-top（容器 padding 会被主题规则盖掉） ---------- */
+
+.sm-banner {
+  margin: 6vh auto 6px !important;
+}
+
+.sm-banner.is-full {
+  margin: 6vh 0 6px !important;
+}
+
+/* 容器上那条 padding 留着也无害，但真正生效的是上面这条 margin */
+.view-content.simple-memos {
+  padding-top: 0;
+}
