@@ -51,7 +51,8 @@ const DEFAULT_SETTINGS = {
   bannerPosition: 'center', // 焦点：center | top | bottom
   bannerOverlay: 0, // 图上的暗化遮罩（0–70）
   authorName: '我', // 视图头显示的名字
-  avatar: '🙂', // 视图头显示的头像（文字 / emoji，不用图片）
+  avatar: '🙂', // 头像兜底：文字 / emoji
+  avatarPath: '', // 头像图片：URL 或库内路径；设了就用图片（照 simple-home-tab 的做法）
   maxWidth: 800, // 内容最大宽度（px），对齐 simple-home-tab 的 50rem
   showHeatmap: true, // 显示热力图（按天统计条数）
 };
@@ -716,7 +717,21 @@ class MemosView extends ItemView {
 
     // 画像行：头像 + 名字 + 统计（条数 / 标签数 / 天数）
     const head = root.createDiv({ cls: 'sm-head' });
-    head.createDiv({ cls: 'sm-avatar', text: s.avatar || '🙂' });
+    const avatar = head.createDiv({ cls: 'sm-avatar' });
+    const avatarSrc = String(s.avatarPath || '').trim();
+    if (avatarSrc) {
+      let url = avatarSrc;
+      if (!/^(https?:|data:|app:)/i.test(avatarSrc)) {
+        try {
+          url = this.app.vault.adapter.getResourcePath(avatarSrc);
+        } catch (e) {
+          url = avatarSrc;
+        }
+      }
+      avatar.createEl('img', { attr: { src: url, alt: '' } });
+    } else {
+      avatar.setText(s.avatar || '🙂');
+    }
     const who = head.createDiv({ cls: 'sm-who' });
     who.createDiv({ cls: 'sm-name', text: s.authorName || '我' });
     this.metaEl = who.createDiv({ cls: 'sm-meta' });
@@ -1141,8 +1156,12 @@ class SimpleMemosSettingTab extends PluginSettingTab {
       .addSlider((sl) => sl.setLimits(0, 70, 5).setValue(s.bannerOverlay).setDynamicTooltip().onChange(bind('bannerOverlay')));
     new Setting(containerEl)
       .setName('头像')
-      .setDesc('一个字符 / emoji 即可（不引入图片文件）')
+      .setDesc('兜底用：一个字符 / emoji（没设头像图片时显示它）')
       .addText((t) => t.setValue(s.avatar).onChange(bind('avatar')));
+    new Setting(containerEl)
+      .setName('头像图片')
+      .setDesc('图片 URL，或库内图片路径（如 assets/avatar.png）；设了就用图片（同 Simple Home Tab）')
+      .addText((t) => t.setValue(s.avatarPath).onChange(bind('avatarPath', (v) => v.trim())));
     new Setting(containerEl)
       .setName('内容最大宽度')
       .setDesc('480–1200 px；宽屏上免得摊得太开')
