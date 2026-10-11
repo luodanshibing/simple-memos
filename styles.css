@@ -1125,3 +1125,29 @@
 .sm-profile {
   padding-bottom: 2px;
 }
+
+/* ---------- v1.4.1 顶部留白 6vh（学 simple-home-tab 的呼吸感），工具条保持顶部 ---------- */
+
+.simple-memos {
+  padding-top: 6vh;
+  padding-bottom: 28px;
+}
+
+/* 工具条收在内容列宽内（不做通栏），与题图同一列 */
+.sm-tools {
+  max-width: var(--sm-max-width, 800px) !important;
+  width: 100% !important;
+  margin: 0 auto 8px !important;
+  padding: 0 2px !important;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sm-brand {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+}
+
+/* 底部那排按钮已撤掉，规则留着无害 */
+.sm-controls {
+  display: none;
+}
