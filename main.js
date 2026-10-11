@@ -44,7 +44,7 @@ const DEFAULT_SETTINGS = {
   dailyFormat: '', // 留空 = 跟随核心「日记」插件
   authorName: '我', // 视图头显示的名字
   avatar: '🙂', // 视图头显示的头像（文字 / emoji，不用图片）
-  maxWidth: 720, // 内容最大宽度（px），免得宽屏上摊得太开
+  maxWidth: 800, // 内容最大宽度（px），对齐 simple-home-tab 的 50rem
   showHeatmap: true, // 显示热力图（按天统计条数）
 };
 
@@ -70,7 +70,7 @@ function normalizeSettings(raw) {
   out.hideDeleted = !!out.hideDeleted;
   out.groupByDayInSingleFile = !!out.groupByDayInSingleFile;
   out.showHeatmap = !!out.showHeatmap;
-  out.maxWidth = clampInt(out.maxWidth, 480, 1200, 720);
+  out.maxWidth = clampInt(out.maxWidth, 480, 1200, 800);
   out.authorName = String(out.authorName == null ? '我' : out.authorName);
   out.avatar = String(out.avatar == null ? '🙂' : out.avatar);
   return out;
