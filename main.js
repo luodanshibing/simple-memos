@@ -715,8 +715,9 @@ class MemosView extends ItemView {
       this.renderList();
     });
 
-    // 画像行：头像 + 名字 + 统计（条数 / 标签数 / 天数）
-    const head = root.createDiv({ cls: 'sm-head' });
+    // 画像行：左边「头像 + 名字 + 统计」，右边「热力图」（同一行，见 .sm-profile）
+    const profileEl = root.createDiv({ cls: 'sm-profile' });
+    const head = profileEl.createDiv({ cls: 'sm-head' });
     const avatar = head.createDiv({ cls: 'sm-avatar' });
     const avatarSrc = String(s.avatarPath || '').trim();
     if (avatarSrc) {
@@ -736,7 +737,7 @@ class MemosView extends ItemView {
     who.createDiv({ cls: 'sm-name', text: s.authorName || '我' });
     this.metaEl = who.createDiv({ cls: 'sm-meta' });
 
-    this.heatEl = root.createDiv({ cls: 'sm-heat' });
+    this.heatEl = profileEl.createDiv({ cls: 'sm-heat' });
     this.tagsEl = root.createDiv({ cls: 'sm-tags' });
 
     const box = root.createDiv({ cls: 'sm-compose' });

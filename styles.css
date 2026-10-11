@@ -827,3 +827,75 @@
 .sm-avatar {
   overflow: hidden;
 }
+
+/* ---------- v1.3.5 版式：画像与热力图同一行；列表不再被压缩 ---------- */
+
+/* 左：头像 + 名字 + 统计（横排）  右：热力图 */
+.sm-profile {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: var(--sm-max-width, 800px);
+  margin: 0 auto;
+  padding: 6px 2px 4px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+}
+
+.sm-profile .sm-head {
+  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: center;
+  text-align: left;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  width: auto;
+}
+
+/* 横排时的头像：小一圈，不要那 76px 的大圆 */
+.sm-profile .sm-avatar {
+  width: 52px;
+  height: 52px;
+  margin: 0;
+  font-size: 26px;
+  border-width: 2px;
+}
+
+.sm-profile .sm-name {
+  font-size: 19px;
+}
+
+.sm-profile .sm-meta {
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+/* 右半：热力图占剩余宽度 */
+.sm-profile .sm-heat {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* 列表：给足最小高度，禁止被压成两条（"看不了几条"的真因） */
+.sm-list {
+  flex: 1 1 auto;
+  min-height: 46vh;
+}
+
+/* 输入区压一点高度，把空间让给列表 */
+.sm-input {
+  min-height: 58px;
+  max-height: 110px;
+}
+
+.sm-compose {
+  padding: 6px 2px 2px;
+}
+
+.sm-tags {
+  padding: 2px 2px 6px;
+}
