@@ -53,7 +53,8 @@ const DEFAULT_SETTINGS = {
   authorName: '我', // 视图头显示的名字
   avatar: '🙂', // 头像兜底：文字 / emoji
   avatarPath: '', // 头像图片：URL 或库内路径；设了就用图片（照 simple-home-tab 的做法）
-  maxWidth: 800, // 内容最大宽度（px），对齐 simple-home-tab 的 50rem
+  maxWidth: 800, // 自定义内容宽度（px），widthTheme 关闭时生效
+  widthTheme: true, // 页面宽度跟随主题阅读宽度（--file-line-width）
   showHeatmap: true, // 显示热力图（按天统计条数）
 };
 
@@ -80,6 +81,7 @@ function normalizeSettings(raw) {
   out.groupByDayInSingleFile = !!out.groupByDayInSingleFile;
   out.showHeatmap = !!out.showHeatmap;
   out.maxWidth = clampInt(out.maxWidth, 480, 1200, 800);
+  out.widthTheme = out.widthTheme === undefined ? true : !!out.widthTheme;
   out.showBanner = !!out.showBanner;
   if (['card', 'full'].indexOf(out.bannerWidth) < 0) out.bannerWidth = 'card';
   if (['cover', 'contain'].indexOf(out.bannerFit) < 0) out.bannerFit = 'cover';
@@ -687,7 +689,8 @@ class MemosView extends ItemView {
     const root = this.contentEl;
     const s = this.plugin.settings;
     root.empty();
-    root.style.setProperty('--sm-max-width', `${s.maxWidth}px`);
+    // 页面宽度：默认跟随主题的阅读宽度（--file-line-width），关掉才用自定义 px
+    root.style.setProperty('--sm-max-width', s.widthTheme ? 'var(--file-line-width, 700px)' : `${s.maxWidth}px`);
 
     // 题图：设置项与 simple-home-tab 同名同义（showBanner / bannerPath / bannerWidth / …）
     if (s.showBanner) {
@@ -1184,8 +1187,12 @@ class SimpleMemosSettingTab extends PluginSettingTab {
       .setDesc('图片 URL，或库内图片路径（如 assets/avatar.png）；设了就用图片（同 Simple Home Tab）')
       .addText((t) => t.setValue(s.avatarPath).onChange(bind('avatarPath', (v) => v.trim())));
     new Setting(containerEl)
-      .setName('内容最大宽度')
-      .setDesc('480–1200 px；宽屏上免得摊得太开')
+      .setName('页面宽度跟随主题')
+      .setDesc('开：用主题的阅读宽度（--file-line-width，跟笔记正文一致）；关：用下面的自定义宽度')
+      .addToggle((t) => t.setValue(s.widthTheme !== false).onChange(bind('widthTheme')));
+    new Setting(containerEl)
+      .setName('自定义内容宽度')
+      .setDesc('480–1200 px；仅在上面那项关闭时生效')
       .addSlider((sl) => sl.setLimits(480, 1200, 20).setValue(s.maxWidth).setDynamicTooltip().onChange(bind('maxWidth')));
     new Setting(containerEl)
       .setName('显示热力图')
