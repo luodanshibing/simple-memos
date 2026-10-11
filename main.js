@@ -639,7 +639,7 @@ class MemosView extends ItemView {
 
   toggleSort() {
     this.sortDesc = !this.sortDesc;
-    if (this.sortBtn) this.sortBtn.setText(this.sortDesc ? '⇅' : '⇅');
+    if (this.sortBtn) this.sortBtn.setText(this.sortDesc ? '排序：新→旧' : '排序：旧→新');
     this.renderList();
   }
 
@@ -717,22 +717,7 @@ class MemosView extends ItemView {
       else veil.style.background = 'transparent';
     }
 
-    // 顶部工具条：标题 + 刷新 + 排序 + 搜索（Thino 那种一行式）
-    const tools = root.createDiv({ cls: 'sm-tools' });
-    tools.createDiv({ cls: 'sm-brand', text: 'MEMOS' });
-    const refresh = tools.createEl('button', { cls: 'sm-ico', text: '⟳' });
-    refresh.setAttribute('aria-label', '刷新');
-    refresh.addEventListener('click', () => this.reload());
-    this.sortBtn = tools.createEl('button', { cls: 'sm-ico', text: '⇅' });
-    this.sortBtn.setAttribute('aria-label', '切换排序');
-    this.sortBtn.addEventListener('click', () => this.toggleSort());
-    this.searchEl = tools.createEl('input', { cls: 'sm-search', type: 'search' });
-    this.searchEl.placeholder = '搜索…';
-    this.searchEl.addEventListener('input', () => {
-      this.query = this.searchEl.value.trim();
-      this.renderList();
-    });
-
+    // 顶部只留题图（照 simple-home-tab：没有工具条）；搜索/刷新/排序在画像下方
     // 画像区照 simple-home-tab：居中单列 —— 日期 → 大时钟 → 头像 → 名字 → 统计
     const profileEl = root.createDiv({ cls: 'sm-profile' });
     this.metaEl = profileEl.createDiv({ cls: 'sm-meta' });
@@ -756,6 +741,20 @@ class MemosView extends ItemView {
     const who = head.createDiv({ cls: 'sm-who' });
     who.createDiv({ cls: 'sm-name', text: s.authorName || '我' });
     this.statsEl = who.createDiv({ cls: 'sm-stats' });
+
+    // 搜索 + 刷新 / 排序：移到画像下方（home-tab 的排法）
+    const tools = root.createDiv({ cls: 'sm-tools' });
+    this.searchEl = tools.createEl('input', { cls: 'sm-search', type: 'search' });
+    this.searchEl.placeholder = '搜索备忘…';
+    this.searchEl.addEventListener('input', () => {
+      this.query = this.searchEl.value.trim();
+      this.renderList();
+    });
+    const ctrl = root.createDiv({ cls: 'sm-controls' });
+    const refresh = ctrl.createEl('button', { cls: 'sm-btn', text: '刷新' });
+    refresh.addEventListener('click', () => this.reload());
+    this.sortBtn = ctrl.createEl('button', { cls: 'sm-btn', text: '排序：新→旧' });
+    this.sortBtn.addEventListener('click', () => this.toggleSort());
 
     this.tagsEl = root.createDiv({ cls: 'sm-tags' });
 

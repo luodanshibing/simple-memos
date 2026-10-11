@@ -126,7 +126,8 @@ eq(T.tagCounts(statMemos), [{ tag: 'Thino/摘录', count: 2 }, { tag: 'Obsidian'
 eq(T.tagCounts([]), [], '没有标签返回空数组');
 eq(T.activeDayCount(statMemos), 2, '有备忘的天数');
 eq(T.activeDayCount([]), 0, '空列表 0 天');
-ok(/sm-brand/.test(SRC) && /'MEMOS'/.test(SRC), '工具条有标题 MEMOS');
+ok(!/sm-brand/.test(SRC), '顶部工具条已去掉（顶部只留题图）');
+ok(SRC.indexOf('sm-profile') < SRC.indexOf('sm-search'), '搜索框排在画像下方');
 ok(/renderTags\(\)/.test(SRC), '有常用标签条');
 ok(/openCardMenu\(/.test(SRC), '卡片有 … 菜单');
 ok(/Menu,/.test(SRC) || /Modal, Menu/.test(SRC), 'Menu 已从 obsidian 解构');
