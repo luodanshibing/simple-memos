@@ -1,0 +1,183 @@
+/* Simple Memos — 视图样式
+   全部使用 Obsidian 主题变量；按钮沿用教训：底色/阴影加 !important 才压得过主题 */
+
+.simple-memos {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+}
+
+/* ---------- 输入区 ---------- */
+.sm-compose {
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sm-input {
+  width: 100%;
+  min-height: 62px;
+  resize: vertical;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--text-normal);
+  background: var(--background-modifier-form-field, var(--background-secondary));
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+}
+
+.sm-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.sm-compose-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.sm-target {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* ---------- 工具条 ---------- */
+.sm-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sm-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 3px 8px;
+  font-size: 12px;
+  color: var(--text-normal);
+  background: var(--background-modifier-form-field, var(--background-secondary));
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+}
+
+.sm-btn {
+  padding: 3px 9px;
+  font-size: 12px;
+  color: var(--text-normal);
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sm-btn:hover {
+  background: transparent !important;
+  border-color: var(--text-muted);
+}
+
+.sm-icon {
+  padding: 1px 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ---------- 列表 ---------- */
+.sm-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 8px 10px 24px;
+}
+
+.sm-card {
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+}
+
+.sm-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.sm-when {
+  font-size: 11px;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.sm-del-mark {
+  padding: 0 5px;
+  font-size: 10px;
+  color: var(--text-on-accent);
+  background: var(--text-faint);
+  border-radius: 4px;
+}
+
+.sm-acts {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.sm-card:hover .sm-acts {
+  opacity: 1;
+}
+
+.sm-body {
+  font-size: 13px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.sm-body > :first-child {
+  margin-top: 0;
+}
+
+.sm-body > :last-child {
+  margin-bottom: 0;
+}
+
+.sm-foot {
+  margin-top: 4px;
+}
+
+.sm-src {
+  font-size: 11px;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.sm-src:hover {
+  color: var(--text-muted);
+}
+
+.sm-empty {
+  padding: 22px 0;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.sm-status {
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--text-faint);
+  border-top: 1px solid var(--background-modifier-border);
+}
