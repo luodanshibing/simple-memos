@@ -890,7 +890,13 @@ class MemosView extends ItemView {
       const now = new Date();
       const wk = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
       const tags = tagCounts(this.memos).length;
-      this.metaEl.setText(`${dayKey(now)} 星期${wk} · ${this.memos.length} 条 · ${tags} 个标签 · ${activeDayCount(this.memos)} 天`);
+      // 日期与统计各占一行（用户 2026-10-11 要求）
+      this.metaEl.empty();
+      this.metaEl.createDiv({ cls: 'sm-meta-line', text: `${dayKey(now)} 星期${wk}` });
+      this.metaEl.createDiv({
+        cls: 'sm-meta-line sm-meta-line-2',
+        text: `${this.memos.length} 条 · ${tags} 个标签 · ${activeDayCount(this.memos)} 天`,
+      });
     }
     this.renderHeat();
     this.renderTags();
