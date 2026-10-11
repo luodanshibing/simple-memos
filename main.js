@@ -42,7 +42,14 @@ const DEFAULT_SETTINGS = {
   groupByDayInSingleFile: false, // 单文件模式下是否按天加 `# YYYY-MM-DD` 标题
   dailyFolder: '', // 留空 = 跟随核心「日记」插件
   dailyFormat: '', // 留空 = 跟随核心「日记」插件
-  banner: '', // 顶部题图：http(s) 链接、data:，或库内图片路径；留空用主题渐变
+  showBanner: true, // 显示题图
+  bannerPath: '', // 题图来源：URL / data: / 库内路径；留空用主题渐变
+  bannerWidth: 'card', // card（跟内容同宽，圆角块）| full（通栏）
+  bannerHeight: 200, // 题图高度（px）
+  bannerRadius: 8, // 题图圆角（px）
+  bannerFit: 'cover', // 填充方式：cover | contain
+  bannerPosition: 'center', // 焦点：center | top | bottom
+  bannerOverlay: 0, // 图上的暗化遮罩（0–70）
   authorName: '我', // 视图头显示的名字
   avatar: '🙂', // 视图头显示的头像（文字 / emoji，不用图片）
   maxWidth: 800, // 内容最大宽度（px），对齐 simple-home-tab 的 50rem
@@ -72,6 +79,13 @@ function normalizeSettings(raw) {
   out.groupByDayInSingleFile = !!out.groupByDayInSingleFile;
   out.showHeatmap = !!out.showHeatmap;
   out.maxWidth = clampInt(out.maxWidth, 480, 1200, 800);
+  out.showBanner = !!out.showBanner;
+  if (['card', 'full'].indexOf(out.bannerWidth) < 0) out.bannerWidth = 'card';
+  if (['cover', 'contain'].indexOf(out.bannerFit) < 0) out.bannerFit = 'cover';
+  if (['center', 'top', 'bottom'].indexOf(out.bannerPosition) < 0) out.bannerPosition = 'center';
+  out.bannerHeight = clampInt(out.bannerHeight, 60, 480, 200);
+  out.bannerRadius = clampInt(out.bannerRadius, 0, 40, 8);
+  out.bannerOverlay = clampInt(out.bannerOverlay, 0, 70, 0);
   out.authorName = String(out.authorName == null ? '我' : out.authorName);
   out.avatar = String(out.avatar == null ? '🙂' : out.avatar);
   return out;
@@ -659,22 +673,30 @@ class MemosView extends ItemView {
     root.empty();
     root.style.setProperty('--sm-max-width', `${s.maxWidth}px`);
 
-    // 题图：留空就用主题渐变（不引入图片文件）
-    const banner = root.createDiv({ cls: 'sm-banner' });
-    const src = String(s.banner || '').trim();
-    if (src) {
-      let url = src;
-      if (!/^(https?:|data:|app:)/i.test(src)) {
-        try {
-          url = this.app.vault.adapter.getResourcePath(src);
-        } catch (e) {
-          url = src;
+    // 题图：设置项与 simple-home-tab 同名同义（showBanner / bannerPath / bannerWidth / …）
+    if (s.showBanner) {
+      const banner = root.createDiv({ cls: `sm-banner${s.bannerWidth === 'full' ? ' is-full' : ''}` });
+      banner.style.height = `${s.bannerHeight}px`;
+      banner.style.borderRadius = `${s.bannerRadius}px`;
+      const src = String(s.bannerPath || '').trim();
+      if (src) {
+        let url = src;
+        if (!/^(https?:|data:|app:)/i.test(src)) {
+          try {
+            url = this.app.vault.adapter.getResourcePath(src);
+          } catch (e) {
+            url = src;
+          }
         }
+        banner.style.backgroundImage = `url("${url}")`;
+        banner.style.backgroundSize = s.bannerFit === 'contain' ? 'contain' : 'cover';
+        banner.style.backgroundPosition = s.bannerPosition === 'top' ? 'center top' : s.bannerPosition === 'bottom' ? 'center bottom' : 'center';
+        banner.addClass('has-image');
       }
-      banner.style.backgroundImage = `url("${url}")`;
-      banner.addClass('has-image');
+      const veil = banner.createDiv({ cls: 'sm-banner-veil' });
+      if (s.bannerOverlay > 0) veil.style.background = `rgba(0,0,0,${(s.bannerOverlay / 100).toFixed(2)})`;
+      else veil.style.background = 'transparent';
     }
-    banner.createDiv({ cls: 'sm-banner-veil' });
 
     // 顶部工具条：标题 + 刷新 + 排序 + 搜索（Thino 那种一行式）
     const tools = root.createDiv({ cls: 'sm-tools' });
@@ -704,8 +726,20 @@ class MemosView extends ItemView {
 
     const box = root.createDiv({ cls: 'sm-compose' });
     this.inputEl = box.createEl('textarea', { cls: 'sm-input' });
-    this.inputEl.rows = 4;
+    this.inputEl.rows = 3;
     this.inputEl.placeholder = '你现在在想什么？（Ctrl/Cmd+Enter 保存）';
+    // 快捷键挂在 window 的**捕获阶段**：别的插件/全局热键可能先吃掉 Ctrl+Enter（真机踩到）
+    this.registerDomEvent(
+      window,
+      'keydown',
+      (evt) => {
+        if (!(evt.ctrlKey || evt.metaKey) || evt.key !== 'Enter') return;
+        if (document.activeElement !== this.inputEl) return;
+        evt.preventDefault();
+        this.submit();
+      },
+      true
+    );
     this.inputEl.addEventListener('keydown', (evt) => {
       if ((evt.ctrlKey || evt.metaKey) && evt.key === 'Enter') {
         evt.preventDefault();
@@ -725,6 +759,7 @@ class MemosView extends ItemView {
     const v = this.inputEl.value.trim();
     if (!v) return;
     try {
+      /* 落盘失败要看得见（以前这里静默吞掉，用户会以为"快捷键无效"） */
       const res = await this.plugin.saveMemo(v, new Date());
       this.inputEl.value = '';
       this.statusEl.setText(`已保存到 ${res.path}`);
@@ -1054,9 +1089,56 @@ class SimpleMemosSettingTab extends PluginSettingTab {
       .setDesc('视图头部显示的名字')
       .addText((t) => t.setValue(s.authorName).onChange(bind('authorName')));
     new Setting(containerEl)
-      .setName('题图')
-      .setDesc('留空 = 主题渐变；也可填图片 URL，或库内图片路径（如 assets/cover.jpg）')
-      .addText((t) => t.setValue(s.banner).onChange(bind('banner', (v) => v.trim())));
+      .setName('显示题图')
+      .setDesc('顶部题图块（设置项与 Simple Home Tab 同名同义）')
+      .addToggle((t) => t.setValue(!!s.showBanner).onChange(bind('showBanner')));
+    new Setting(containerEl)
+      .setName('题图来源')
+      .setDesc('图片 URL，或库内图片路径（如 assets/cover.jpg）；留空 = 主题渐变')
+      .addText((t) => t.setValue(s.bannerPath).onChange(bind('bannerPath', (v) => v.trim())));
+    new Setting(containerEl)
+      .setName('题图宽度')
+      .setDesc('跟内容同宽（圆角块），或通栏铺满')
+      .addDropdown((d) =>
+        d
+          .addOption('card', '跟内容同宽')
+          .addOption('full', '通栏')
+          .setValue(s.bannerWidth)
+          .onChange(bind('bannerWidth'))
+      );
+    new Setting(containerEl)
+      .setName('题图高度')
+      .setDesc('60–480 px')
+      .addSlider((sl) => sl.setLimits(60, 480, 10).setValue(s.bannerHeight).setDynamicTooltip().onChange(bind('bannerHeight')));
+    new Setting(containerEl)
+      .setName('题图圆角')
+      .setDesc('0–40 px')
+      .addSlider((sl) => sl.setLimits(0, 40, 1).setValue(s.bannerRadius).setDynamicTooltip().onChange(bind('bannerRadius')));
+    new Setting(containerEl)
+      .setName('填充方式')
+      .setDesc('cover = 铺满裁切；contain = 完整显示留白')
+      .addDropdown((d) =>
+        d
+          .addOption('cover', 'cover')
+          .addOption('contain', 'contain')
+          .setValue(s.bannerFit)
+          .onChange(bind('bannerFit'))
+      );
+    new Setting(containerEl)
+      .setName('焦点位置')
+      .setDesc('裁切时保留哪一部分')
+      .addDropdown((d) =>
+        d
+          .addOption('center', '居中')
+          .addOption('top', '上')
+          .addOption('bottom', '下')
+          .setValue(s.bannerPosition)
+          .onChange(bind('bannerPosition'))
+      );
+    new Setting(containerEl)
+      .setName('题图遮罩')
+      .setDesc('0–70，越大图越暗；用来让上面的文字更清楚')
+      .addSlider((sl) => sl.setLimits(0, 70, 5).setValue(s.bannerOverlay).setDynamicTooltip().onChange(bind('bannerOverlay')));
     new Setting(containerEl)
       .setName('头像')
       .setDesc('一个字符 / emoji 即可（不引入图片文件）')

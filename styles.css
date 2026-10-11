@@ -665,3 +665,82 @@
 .sm-compose {
   padding: 6px 10px 4px;
 }
+
+/* ---------- v1.3.2 修复：居中块的宽度 / 题图 / 输入框比例 ---------- */
+
+/* 关键修复：纵向 flex 容器里 margin:auto 会让块"缩成内容宽"（不再拉伸），
+   于是输入框只有 textarea 默认宽度、热力图网格宽度塌成 0。补 width:100%。 */
+.sm-head,
+.sm-compose,
+.sm-tools,
+.sm-heat,
+.sm-tags,
+.sm-list,
+.sm-status,
+.sm-banner {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sm-tools {
+  max-width: none;
+}
+
+/* 题图：宽度/高度/圆角/填充都由设置里给（内联样式），这里只管观感和通栏变体 */
+.sm-banner {
+  max-width: var(--sm-max-width, 800px);
+  margin: 0 auto 6px;
+  overflow: hidden;
+  background-image: none;
+  background-color: transparent;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--interactive-accent) 22%, var(--background-secondary)), var(--background-secondary));
+  background-size: cover;
+  background-position: center;
+}
+
+.sm-banner.is-full {
+  max-width: none;
+  border-radius: 0 !important;
+  margin-bottom: 0;
+}
+
+.sm-banner-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* 输入框：压窄一点（3 行高度 + 上限），比例更协调 */
+.sm-input {
+  min-height: 76px;
+  max-height: 140px;
+}
+
+/* 热力图：容器有宽度后，格子按列均分铺满 */
+.sm-heat-grid {
+  width: 100%;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 14px);
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
+}
+
+.sm-heat-cell {
+  width: auto;
+  height: 14px;
+  border-radius: 3px;
+}
+
+/* 卡片是透明列表，取消 hover 以外的视觉重量 */
+.sm-card {
+  padding: 14px 2px;
+}
+
+.sm-when {
+  font-size: 13px;
+}
+
+.sm-body {
+  font-size: 15px;
+  line-height: 1.7;
+}

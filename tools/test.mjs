@@ -139,7 +139,7 @@ ok(/getDisplayText\(\)\s*\{\s*return 'memos'/.test(SRC), '标签页标题是 mem
 ok(/读取设置失败/.test(SRC), '读设置失败不会让插件加载失败');
 
 /* ---------- 1. 设置 ---------- */
-eq(Object.keys(T.DEFAULT_SETTINGS).length, 16, '默认设置 16 项');
+eq(Object.keys(T.DEFAULT_SETTINGS).length, 23, '默认设置 23 项');
 eq(T.DEFAULT_SETTINGS.storageMode, 'daily-end', '默认写日记末尾');
 eq(T.DEFAULT_SETTINGS.memoStyle, 'list', '默认用列表式（与 Thino 在日记里的写法一致）');
 eq(T.DEFAULT_SETTINGS.deleteMode, 'remove', '默认直接删除');
