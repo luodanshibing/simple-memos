@@ -613,8 +613,9 @@ class MemosView extends ItemView {
 
   async onOpen() {
     this.contentEl.addClass('simple-memos');
-    // 时钟每 20 秒走一次；registerInterval 随视图关闭自动注销（不在插件 onload 里起定时器）
-    this.registerInterval(() => this.tickClock(), 20000);
+    // 时钟每秒走一次（秒针真跳）；只在"文字真的变了"时写 DOM，窗口隐藏时跳过。
+    // registerInterval 随视图关闭自动注销 —— 插件 onload 里依然零定时器、零监听。
+    this.registerInterval(() => this.tickClock(), 1000);
     this.buildShell();
     this.registerEvent(this.app.vault.on('modify', () => this.scheduleRefresh()));
     this.registerEvent(this.app.vault.on('create', () => this.scheduleRefresh()));
@@ -672,9 +673,12 @@ class MemosView extends ItemView {
 
   /** 大号时钟（照 simple-home-tab 的做法），每 20 秒走一次 */
   tickClock() {
-    if (!this.clockEl) return;
+    if (!this.clockEl || document.hidden) return;
     const d = new Date();
-    this.clockEl.setText(`${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`);
+    const next = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+    if (next === this.clockText) return; // 文字没变就不碰 DOM
+    this.clockText = next;
+    this.clockEl.setText(next);
   }
 
   buildShell() {
