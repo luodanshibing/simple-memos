@@ -368,3 +368,190 @@
   border-color: var(--text-faint);
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
 }
+
+/* ============================================================
+   v1.3 —— 视觉对齐 simple-home-tab（用户："我很喜欢那个风格"）
+   它的设计语言：居中列 / 大号头像 + 标题 / 44px 输入框（聚焦 3px 强调色光晕）
+   / 10px 圆角 / 发丝分隔线 / 大字号配白space
+   本块放在样式末尾，靠"后写覆盖"改写前面同优先级的规则。
+   ============================================================ */
+
+.simple-memos {
+  font-family: var(--font-interface);
+}
+
+/* ---------- 居中收窄：头部做成"头像 + 大标题 + 副标题" ---------- */
+.sm-head {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0;
+  padding: 4vh 10px 10px;
+}
+
+.sm-avatar {
+  width: 84px;
+  height: 84px;
+  margin-bottom: 14px;
+  font-size: 40px;
+  font-weight: 600;
+  color: var(--text-on-accent, #fff);
+  background: var(--interactive-accent);
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.sm-name {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sm-meta {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* ---------- 工具条：轻、居中、不抢戏 ---------- */
+.sm-tools {
+  padding: 10px 10px 6px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sm-brand {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+}
+
+/* ---------- 搜索框：照搬 home-tab 的 44px + 聚焦光晕 ---------- */
+.sm-search {
+  height: 44px;
+  padding: 0 16px;
+  font-size: 15px;
+  border-radius: 10px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.sm-search:focus {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--interactive-accent) 20%, transparent);
+}
+
+/* ---------- 输入区：和搜索框同一种观感，聚焦同样发光 ---------- */
+.sm-input {
+  padding: 12px 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  border-radius: 10px;
+  background: var(--background-secondary);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.sm-input:focus {
+  border-color: var(--interactive-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--interactive-accent) 20%, transparent);
+}
+
+/* ---------- 按钮：10px 圆角，主按钮实心强调色 ---------- */
+.sm-btn {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+  border-radius: 10px;
+  border: 1px solid var(--background-modifier-border);
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.sm-btn:hover {
+  background: var(--background-modifier-hover) !important;
+}
+
+.sm-btn.mod-cta {
+  color: var(--text-on-accent) !important;
+  background: var(--interactive-accent) !important;
+  border-color: var(--interactive-accent) !important;
+}
+
+.sm-btn.mod-cta:hover {
+  background: var(--interactive-accent-hover, var(--interactive-accent)) !important;
+}
+
+.sm-ico {
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  border-radius: 10px;
+}
+
+/* ---------- 卡片：10px 圆角 + 发丝边 + 悬停浮起 ---------- */
+.sm-card {
+  padding: 12px 16px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.sm-card:hover {
+  border-color: color-mix(in srgb, var(--interactive-accent) 45%, var(--background-modifier-border));
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
+}
+
+.sm-when {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.sm-body {
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.sm-src {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+/* ---------- 标签条：胶囊 ---------- */
+.sm-chip {
+  height: 24px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  background: var(--background-secondary) !important;
+}
+
+.sm-chip.is-on {
+  color: var(--text-on-accent);
+  background: var(--interactive-accent) !important;
+  border-color: var(--interactive-accent);
+}
+
+/* ---------- 热力图：格子稍大一点，圆角统一 ---------- */
+.sm-heat-cell {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+}
+
+.sm-heat-legend {
+  font-size: 11px;
+}
+
+/* ---------- 状态行 ---------- */
+.sm-status {
+  padding: 6px 10px 12px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
