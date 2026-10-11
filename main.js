@@ -613,6 +613,8 @@ class MemosView extends ItemView {
 
   async onOpen() {
     this.contentEl.addClass('simple-memos');
+    // 时钟每 20 秒走一次；registerInterval 随视图关闭自动注销（不在插件 onload 里起定时器）
+    this.registerInterval(() => this.tickClock(), 20000);
     this.buildShell();
     this.registerEvent(this.app.vault.on('modify', () => this.scheduleRefresh()));
     this.registerEvent(this.app.vault.on('create', () => this.scheduleRefresh()));
@@ -666,6 +668,13 @@ class MemosView extends ItemView {
     menu.addItem((i) => i.setTitle('删除').setIcon('trash').onClick(() => this.deleteMemo(memo)));
     evt.preventDefault();
     menu.showAtMouseEvent(evt);
+  }
+
+  /** 大号时钟（照 simple-home-tab 的做法），每 20 秒走一次 */
+  tickClock() {
+    if (!this.clockEl) return;
+    const d = new Date();
+    this.clockEl.setText(`${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`);
   }
 
   buildShell() {
@@ -736,6 +745,7 @@ class MemosView extends ItemView {
     const who = head.createDiv({ cls: 'sm-who' });
     who.createDiv({ cls: 'sm-name', text: s.authorName || '我' });
     this.metaEl = who.createDiv({ cls: 'sm-meta' });
+    this.clockEl = who.createDiv({ cls: 'sm-clock' });
 
     this.heatEl = profileEl.createDiv({ cls: 'sm-heat' });
     this.tagsEl = root.createDiv({ cls: 'sm-tags' });
@@ -899,6 +909,7 @@ class MemosView extends ItemView {
       });
     }
     this.renderHeat();
+    this.tickClock();
     this.renderTags();
     this.statusEl.setText(`${shown.length} 条${this.query ? `（共 ${this.memos.length} 条）` : ''} · 已读最近 ${this.days} 天`);
   }
