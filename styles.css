@@ -1028,3 +1028,68 @@
 .sm-profile .sm-heat-grid {
   max-height: 112px;
 }
+
+/* ---------- v1.3.9 画像区照 simple-home-tab：居中单列 + 大时钟（热力图已停用） ---------- */
+
+.sm-profile {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0;
+  padding: 8px 2px 10px;
+}
+
+/* 日期：小、淡、居中（home-tab 的 15px muted） */
+.sm-profile .sm-meta {
+  order: 1;
+  margin: 0 0 2px;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+/* 大时钟：home-tab 的 52px / 600 / tabular-nums */
+.sm-profile .sm-clock {
+  order: 2;
+  margin: 0 0 14px;
+  font-size: 52px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 1px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-normal);
+}
+
+/* 头像 + 名字 + 统计：竖排居中 */
+.sm-profile .sm-head {
+  order: 3;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0;
+  width: auto;
+  padding: 0;
+}
+
+.sm-profile .sm-avatar {
+  width: 84px;
+  height: 84px;
+  margin: 0 0 14px;
+  font-size: 40px;
+}
+
+.sm-profile .sm-who {
+  height: auto;
+}
+
+.sm-profile .sm-name {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sm-profile .sm-stats {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text-muted);
+}

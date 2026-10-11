@@ -132,7 +132,11 @@ ok(/openCardMenu\(/.test(SRC), '卡片有 … 菜单');
 ok(/Menu,/.test(SRC) || /Modal, Menu/.test(SRC), 'Menu 已从 obsidian 解构');
 ok(/getLeaf\('tab'\)/.test(SRC), '默认开在主区（不再默认右侧栏）');
 ok(/registerView/.test(onloadBody), 'onload 只注册视图');
-ok(!/setInterval/.test(SRC), '整个源码没有 setInterval');
+/* 定时器新规（2026-10-11）：允许用 setInterval，但**必须**交给 registerInterval 注销
+   （视图关闭即停）。插件 onload 范围仍由上面那条断言守着"零事件、零定时器"。 */
+const intervalCalls = (SRC.match(/setInterval\(/g) || []).length;
+const registeredIntervals = (SRC.match(/registerInterval\(/g) || []).length;
+eq(intervalCalls > 0 && intervalCalls === registeredIntervals, true, '每个 setInterval 都交给 registerInterval 注销');
 ok(/registerEvent\(this\.app\.vault\.on/.test(SRC), '文件监听挂在视图上（随视图注销）');
 ok(/leaf\.view instanceof MemosView/.test(SRC), '打开视图时区分真视图与占位标签页');
 ok(/getDisplayText\(\)\s*\{\s*return 'memos'/.test(SRC), '标签页标题是 memos');

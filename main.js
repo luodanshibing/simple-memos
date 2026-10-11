@@ -614,8 +614,10 @@ class MemosView extends ItemView {
   async onOpen() {
     this.contentEl.addClass('simple-memos');
     // 时钟每秒走一次（秒针真跳）；只在"文字真的变了"时写 DOM，窗口隐藏时跳过。
-    // registerInterval 随视图关闭自动注销 —— 插件 onload 里依然零定时器、零监听。
-    this.registerInterval(() => this.tickClock(), 1000);
+    // ⚠️ registerInterval 收的是 setInterval 返回的 **id**，不是回调 ——
+    // 传回调进去等于什么都没注册（真机踩到：秒针一直不动）。这里改成传 id。
+    this.clockTimer = window.setInterval(() => this.tickClock(), 1000);
+    this.registerInterval(this.clockTimer);
     this.buildShell();
     this.registerEvent(this.app.vault.on('modify', () => this.scheduleRefresh()));
     this.registerEvent(this.app.vault.on('create', () => this.scheduleRefresh()));
@@ -728,8 +730,10 @@ class MemosView extends ItemView {
       this.renderList();
     });
 
-    // 画像行：左边「头像 + 名字 + 统计」，右边「热力图」（同一行，见 .sm-profile）
+    // 画像区照 simple-home-tab：居中单列 —— 日期 → 大时钟 → 头像 → 名字 → 统计
     const profileEl = root.createDiv({ cls: 'sm-profile' });
+    this.metaEl = profileEl.createDiv({ cls: 'sm-meta' });
+    this.clockEl = profileEl.createDiv({ cls: 'sm-clock' });
     const head = profileEl.createDiv({ cls: 'sm-head' });
     const avatar = head.createDiv({ cls: 'sm-avatar' });
     const avatarSrc = String(s.avatarPath || '').trim();
@@ -748,10 +752,8 @@ class MemosView extends ItemView {
     }
     const who = head.createDiv({ cls: 'sm-who' });
     who.createDiv({ cls: 'sm-name', text: s.authorName || '我' });
-    this.metaEl = who.createDiv({ cls: 'sm-meta' });
-    this.clockEl = who.createDiv({ cls: 'sm-clock' });
+    this.statsEl = who.createDiv({ cls: 'sm-stats' });
 
-    this.heatEl = profileEl.createDiv({ cls: 'sm-heat' });
     this.tagsEl = root.createDiv({ cls: 'sm-tags' });
 
     const box = root.createDiv({ cls: 'sm-compose' });
@@ -903,16 +905,13 @@ class MemosView extends ItemView {
     if (this.metaEl) {
       const now = new Date();
       const wk = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
-      const tags = tagCounts(this.memos).length;
-      // 日期与统计各占一行（用户 2026-10-11 要求）
-      this.metaEl.empty();
-      this.metaEl.createDiv({ cls: 'sm-meta-line', text: `${dayKey(now)} 星期${wk}` });
-      this.metaEl.createDiv({
-        cls: 'sm-meta-line sm-meta-line-2',
-        text: `${this.memos.length} 条 · ${tags} 个标签 · ${activeDayCount(this.memos)} 天`,
-      });
+      // 日期在最上面（home-tab 的排法），统计在名字下面
+      this.metaEl.setText(`${dayKey(now)} 星期${wk}`);
+      if (this.statsEl) {
+        const tags = tagCounts(this.memos).length;
+        this.statsEl.setText(`${this.memos.length} 条 · ${tags} 个标签 · ${activeDayCount(this.memos)} 天`);
+      }
     }
-    this.renderHeat();
     this.tickClock();
     this.renderTags();
     this.statusEl.setText(`${shown.length} 条${this.query ? `（共 ${this.memos.length} 条）` : ''} · 已读最近 ${this.days} 天`);
