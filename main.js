@@ -24,7 +24,7 @@
  * ========================================================================== */
 
 const obsidian = require('obsidian');
-const { Plugin, PluginSettingTab, Setting, Notice, TFile, ItemView, MarkdownRenderer, Modal } = obsidian;
+const { Plugin, PluginSettingTab, Setting, Notice, TFile, ItemView, MarkdownRenderer, Modal, Menu } = obsidian;
 
 const VIEW_TYPE = 'simple-memos-view';
 const LIST_RE = /^[-*+](\s+)(\d{1,2}:\d{2})(?:\s*[-~]\s*(\d{1,2}:\d{2}))?(\s+)(.*)$/;
@@ -368,6 +368,27 @@ function heatLevel(count) {
   if (c <= 3) return 2;
   if (c <= 6) return 3;
   return 4;
+}
+
+/** 标签计数（纯函数）：[{ tag, count }]，多的在前 */
+function tagCounts(memos) {
+  const map = {};
+  for (const m of Array.isArray(memos) ? memos : []) {
+    for (const t of (m && m.tags) || []) map[t] = (map[t] || 0) + 1;
+  }
+  return Object.keys(map)
+    .map((tag) => ({ tag: tag, count: map[tag] }))
+    .sort((a, b) => b.count - a.count || (a.tag < b.tag ? -1 : 1));
+}
+
+/** 有备忘的天数（纯函数）—— 对应 Thino 那个「N 天」 */
+function activeDayCount(memos) {
+  const set = {};
+  for (const m of Array.isArray(memos) ? memos : []) {
+    const d = (m && (m.dateText || m.fileDay)) || '';
+    if (d) set[d] = 1;
+  }
+  return Object.keys(set).length;
 }/** 备忘在时间线里的排序键（新的在前）。callout 有日期，列表式用所在文件的日期或日期标题。 */
 function memoSortKey(memo, fileDay) {
   const m = memo || {};
@@ -415,8 +436,13 @@ class SimpleMemosPlugin extends Plugin {
 
     this.addCommand({
       id: 'open-memos',
-      name: '打开备忘视图',
+      name: '打开备忘视图（主区，像 Thino 那样有宽度）',
       callback: () => this.activateView(),
+    });
+    this.addCommand({
+      id: 'open-memos-sidebar',
+      name: '打开备忘视图（右侧边栏）',
+      callback: () => this.activateView('sidebar'),
     });
     this.addCommand({
       id: 'quick-memo',
@@ -521,7 +547,7 @@ class SimpleMemosPlugin extends Plugin {
    * 同类型但内容为「插件不再活动」的占位页；旧写法只看类型就 reveal，于是永远停在占位页
    * （2026-10-11 真机踩到）。这里对占位页直接重建视图状态。
    */
-  async activateView() {
+  async activateView(where) {
     const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE);
     for (const leaf of leaves) {
       if (leaf.view instanceof MemosView) {
@@ -535,7 +561,8 @@ class SimpleMemosPlugin extends Plugin {
       this.app.workspace.revealLeaf(stale);
       return;
     }
-    const leaf = this.app.workspace.getRightLeaf(false);
+    // 默认开在主区（像 Thino 那样有宽度）；where === 'sidebar' 时开在右侧栏
+    const leaf = where === 'sidebar' ? this.app.workspace.getRightLeaf(false) : this.app.workspace.getLeaf('tab');
     if (!leaf) return;
     await leaf.setViewState({ type: VIEW_TYPE, active: true });
     this.app.workspace.revealLeaf(leaf);
@@ -552,6 +579,7 @@ class MemosView extends ItemView {
     this.days = 0;
     this.query = '';
     this.refreshTimer = null;
+    this.sortDesc = true;
   }
 
   getViewType() {
@@ -586,13 +614,67 @@ class MemosView extends ItemView {
     this.refreshTimer = window.setTimeout(() => this.reload(), 400);
   }
 
+  toggleSort() {
+    this.sortDesc = !this.sortDesc;
+    if (this.sortBtn) this.sortBtn.setText(this.sortDesc ? '⇅' : '⇅');
+    this.renderList();
+  }
+
+  /** 常用标签条（点击即筛选） */
+  renderTags() {
+    const el = this.tagsEl;
+    if (!el) return;
+    el.empty();
+    const all = tagCounts(this.memos);
+    if (!all.length) return;
+    el.createSpan({ cls: 'sm-tags-label', text: '常用标签' });
+    for (const t of all.slice(0, 14)) {
+      const chip = el.createEl('button', { cls: `sm-chip${this.query === `#${t.tag}` ? ' is-on' : ''}` });
+      chip.setText(`#${t.tag}`);
+      chip.createSpan({ cls: 'sm-chip-n', text: String(t.count) });
+      chip.addEventListener('click', () => {
+        const q = `#${t.tag}`;
+        this.query = this.query === q ? '' : q;
+        if (this.searchEl) this.searchEl.value = this.query;
+        this.renderList();
+      });
+    }
+  }
+
+  /** 卡片右上角的 … 菜单 */
+  openCardMenu(evt, memo) {
+    const menu = new Menu();
+    menu.addItem((i) => i.setTitle('编辑').setIcon('pencil').onClick(() => this.editMemo(memo)));
+    menu.addItem((i) => i.setTitle('复制').setIcon('copy').onClick(() => this.copyMemo(memo)));
+    menu.addItem((i) => i.setTitle('在笔记中打开').setIcon('file-text').onClick(() => this.openAt(memo)));
+    menu.addItem((i) => i.setTitle('删除').setIcon('trash').onClick(() => this.deleteMemo(memo)));
+    evt.preventDefault();
+    menu.showAtMouseEvent(evt);
+  }
+
   buildShell() {
     const root = this.contentEl;
     const s = this.plugin.settings;
     root.empty();
     root.style.setProperty('--sm-max-width', `${s.maxWidth}px`);
 
-    // 头部：头像 + 名字 + 日期 / 条数（Thino 那种观感，但用文字头，不引入图片）
+    // 顶部工具条：标题 + 刷新 + 排序 + 搜索（Thino 那种一行式）
+    const tools = root.createDiv({ cls: 'sm-tools' });
+    tools.createDiv({ cls: 'sm-brand', text: 'MEMOS' });
+    const refresh = tools.createEl('button', { cls: 'sm-ico', text: '⟳' });
+    refresh.setAttribute('aria-label', '刷新');
+    refresh.addEventListener('click', () => this.reload());
+    this.sortBtn = tools.createEl('button', { cls: 'sm-ico', text: '⇅' });
+    this.sortBtn.setAttribute('aria-label', '切换排序');
+    this.sortBtn.addEventListener('click', () => this.toggleSort());
+    this.searchEl = tools.createEl('input', { cls: 'sm-search', type: 'search' });
+    this.searchEl.placeholder = '搜索…';
+    this.searchEl.addEventListener('input', () => {
+      this.query = this.searchEl.value.trim();
+      this.renderList();
+    });
+
+    // 画像行：头像 + 名字 + 统计（条数 / 标签数 / 天数）
     const head = root.createDiv({ cls: 'sm-head' });
     head.createDiv({ cls: 'sm-avatar', text: s.avatar || '🙂' });
     const who = head.createDiv({ cls: 'sm-who' });
@@ -600,11 +682,12 @@ class MemosView extends ItemView {
     this.metaEl = who.createDiv({ cls: 'sm-meta' });
 
     this.heatEl = root.createDiv({ cls: 'sm-heat' });
+    this.tagsEl = root.createDiv({ cls: 'sm-tags' });
 
     const box = root.createDiv({ cls: 'sm-compose' });
     this.inputEl = box.createEl('textarea', { cls: 'sm-input' });
-    this.inputEl.rows = 3;
-    this.inputEl.placeholder = '记录点什么…（Ctrl/Cmd+Enter 保存）';
+    this.inputEl.rows = 4;
+    this.inputEl.placeholder = '你现在在想什么？（Ctrl/Cmd+Enter 保存）';
     this.inputEl.addEventListener('keydown', (evt) => {
       if ((evt.ctrlKey || evt.metaKey) && evt.key === 'Enter') {
         evt.preventDefault();
@@ -612,21 +695,21 @@ class MemosView extends ItemView {
       }
     });
     const bar = box.createDiv({ cls: 'sm-compose-bar' });
-    this.targetEl = bar.createDiv({ cls: 'sm-target' });
-    this.saveBtn = bar.createEl('button', { text: '保存', cls: 'mod-cta sm-btn' });
-    this.saveBtn.addEventListener('click', () => this.submit());
-
-    const tools = root.createDiv({ cls: 'sm-tools' });
-    this.searchEl = tools.createEl('input', { cls: 'sm-search', type: 'search' });
-    this.searchEl.placeholder = '搜索…';
-    this.searchEl.addEventListener('input', () => {
-      this.query = this.searchEl.value.trim();
-      this.renderList();
+    const paste = bar.createEl('button', { text: '粘贴', cls: 'sm-btn' });
+    paste.addEventListener('click', async () => {
+      try {
+        const t = await navigator.clipboard.readText();
+        if (t) this.inputEl.value = this.inputEl.value ? `${this.inputEl.value}\n${t}` : t;
+        this.inputEl.focus();
+      } catch (e) {
+        new Notice('读剪贴板失败');
+      }
     });
-    const more = tools.createEl('button', { text: '加载更多', cls: 'sm-btn' });
+    const more = bar.createEl('button', { text: '加载更多', cls: 'sm-btn' });
     more.addEventListener('click', () => this.loadMore());
-    const refresh = tools.createEl('button', { text: '刷新', cls: 'sm-btn' });
-    refresh.addEventListener('click', () => this.reload());
+    this.targetEl = bar.createDiv({ cls: 'sm-target' });
+    this.saveBtn = bar.createEl('button', { text: 'NOTE', cls: 'mod-cta sm-btn' });
+    this.saveBtn.addEventListener('click', () => this.submit());
 
     this.listEl = root.createDiv({ cls: 'sm-list' });
     this.statusEl = root.createDiv({ cls: 'sm-status' });
@@ -706,21 +789,27 @@ class MemosView extends ItemView {
     const list = this.listEl;
     list.empty();
     const q = this.query.toLowerCase();
-    const shown = q
-      ? this.memos.filter((m) => String(m.body || '').toLowerCase().indexOf(q) >= 0 || (m.tags || []).join(' ').toLowerCase().indexOf(q) >= 0)
-      : this.memos;
+    let shown = q
+      ? this.memos.filter((m) => {
+          const body = String(m.body || '').toLowerCase();
+          const tags = (m.tags || []).map((t) => `#${t}`).join(' ').toLowerCase();
+          return body.indexOf(q) >= 0 || tags.indexOf(q) >= 0;
+        })
+      : this.memos.slice();
+    if (!this.sortDesc) shown.reverse();
     if (!shown.length) {
       list.createDiv({ cls: 'sm-empty', text: this.query ? '没有匹配的备忘' : '还没有备忘' });
     }
     for (const m of shown) {
       const card = list.createDiv({ cls: 'sm-card' });
       const head = card.createDiv({ cls: 'sm-card-head' });
-      head.createSpan({ cls: 'sm-when', text: `${m.fileDay || m.dateText || ''} ${m.time || ''}`.trim() });
+      const when = `${(m.fileDay || m.dateText || '').replace(/-/g, '/')} ${m.time || ''}`.trim();
+      head.createSpan({ cls: 'sm-when', text: when });
       if (m.deleted) head.createSpan({ cls: 'sm-del-mark', text: '已删除' });
       const acts = head.createDiv({ cls: 'sm-acts' });
-      this.addCardButton(acts, '编辑', () => this.editMemo(m));
-      this.addCardButton(acts, '复制', () => this.copyMemo(m));
-      this.addCardButton(acts, '删除', () => this.deleteMemo(m));
+      const more = acts.createEl('button', { cls: 'sm-ico', text: '…' });
+      more.setAttribute('aria-label', '更多');
+      more.addEventListener('click', (evt) => this.openCardMenu(evt, m));
 
       const bodyEl = card.createDiv({ cls: 'sm-body' });
       try {
@@ -738,9 +827,11 @@ class MemosView extends ItemView {
     if (this.metaEl) {
       const now = new Date();
       const wk = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
-      this.metaEl.setText(`${dayKey(now)} 星期${wk} · 时间线 ${shown.length} 条${this.query ? `（共 ${this.memos.length} 条）` : ''}`);
+      const tags = tagCounts(this.memos).length;
+      this.metaEl.setText(`${dayKey(now)} 星期${wk} · ${this.memos.length} 条 · ${tags} 个标签 · ${activeDayCount(this.memos)} 天`);
     }
     this.renderHeat();
+    this.renderTags();
     this.statusEl.setText(`${shown.length} 条${this.query ? `（共 ${this.memos.length} 条）` : ''} · 已读最近 ${this.days} 天`);
   }
 
@@ -761,21 +852,6 @@ class MemosView extends ItemView {
     legend.createSpan({ text: '多' });
   }
 
-  /**
-   * 卡片上的小按钮。
-   * ⚠️ 千万别叫 addAction —— 那是 Obsidian `View` 自带的方法（视图头部动作按钮），
-   * 覆盖它会让 Obsidian 构造视图时调到这里：`parent.createEl is not a function`
-   * → 视图创建失败 → 标签页永远显示原始类型名 +「插件不再活动」（2026-10-11 真机事故）。
-   */
-  addCardButton(parent, title, handler) {
-    const b = parent.createEl('button', { cls: 'sm-icon sm-btn' });
-    b.setAttribute('aria-label', title);
-    b.setText(title);
-    b.addEventListener('click', (evt) => {
-      evt.preventDefault();
-      handler();
-    });
-  }
 
   openAt(memo) {
     const file = this.app.vault.getAbstractFileByPath(memo.path);
@@ -1025,6 +1101,8 @@ module.exports.__test = {
   effectiveMemoStyle,
   heatmapCells,
   heatLevel,
+  tagCounts,
+  activeDayCount,
   resolveTargetPath,
   formatDaily,
 };

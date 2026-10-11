@@ -78,8 +78,8 @@ while ((mm = methodRe.exec(viewBody)) !== null) viewMethods.push(mm[1]);
 const reserved = ['addAction', 'onResize', 'getState', 'setState', 'onPaneMenu', 'onMoreOptionsMenu', 'getEphemeralState', 'setEphemeralState', 'onLoad', 'onUnload'];
 const clashes = viewMethods.filter((m) => reserved.indexOf(m) >= 0);
 eq(clashes, [], '视图类没有覆盖 Obsidian 的 View API（addAction 等）');
-eq(viewMethods.indexOf('addCardButton') >= 0, true, '卡片按钮用的是自己的方法名 addCardButton');
-eq(/this\.addCardButton\(/.test(SRC), true, '调用处也已改名');
+eq(viewMethods.indexOf('addCardButton') >= 0, false, '已删除无用的 addCardButton（卡片改用 … 菜单）');
+eq(/this\.addCardButton\(/.test(SRC), false, '卡片改用 … 菜单，不再有文字按钮');
 
 /* ---------- 0c. 单文件：日期标题用二级 + 列表式备忘要挂上日期（2026-10-11 用户反馈） ---------- */
 eq(T.appendWithDayHeading('', '- 09:05 x', '2026-10-11'), '## 2026-10-11\n\n- 09:05 x\n', '按天分组用二级标题');
@@ -114,6 +114,23 @@ eq(T.heatLevel(1), 1, '等级 1');
 eq(T.heatLevel(3), 2, '等级 2');
 eq(T.heatLevel(5), 3, '等级 3');
 eq(T.heatLevel(9), 4, '等级 4');
+
+/* ---------- 0f. 统计与界面（2026-10-11 用户要求"像 Thino 那样像样"） ---------- */
+const statMemos = [
+  { tags: ['Thino/摘录', 'Obsidian'], dateText: '2026-10-11' },
+  { tags: ['Thino/摘录'], dateText: '2026-10-10' },
+  { tags: [], fileDay: '2026-10-10' },
+  { tags: [] },
+];
+eq(T.tagCounts(statMemos), [{ tag: 'Thino/摘录', count: 2 }, { tag: 'Obsidian', count: 1 }], '标签计数并多的在前');
+eq(T.tagCounts([]), [], '没有标签返回空数组');
+eq(T.activeDayCount(statMemos), 2, '有备忘的天数');
+eq(T.activeDayCount([]), 0, '空列表 0 天');
+ok(/sm-brand/.test(SRC) && /'MEMOS'/.test(SRC), '工具条有标题 MEMOS');
+ok(/renderTags\(\)/.test(SRC), '有常用标签条');
+ok(/openCardMenu\(/.test(SRC), '卡片有 … 菜单');
+ok(/Menu,/.test(SRC) || /Modal, Menu/.test(SRC), 'Menu 已从 obsidian 解构');
+ok(/getLeaf\('tab'\)/.test(SRC), '默认开在主区（不再默认右侧栏）');
 ok(/registerView/.test(onloadBody), 'onload 只注册视图');
 ok(!/setInterval/.test(SRC), '整个源码没有 setInterval');
 ok(/registerEvent\(this\.app\.vault\.on/.test(SRC), '文件监听挂在视图上（随视图注销）');

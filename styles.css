@@ -271,3 +271,100 @@
   font-size: 10px;
   color: var(--text-faint);
 }
+
+/* ---------- v1.2 工具条 / 标签条 / 卡片重做 ---------- */
+.sm-tools {
+  padding: 10px 10px 2px;
+  border-bottom: none;
+}
+
+.sm-brand {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.sm-ico {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.sm-ico:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover) !important;
+}
+
+.sm-search {
+  margin-left: auto;
+  flex: 0 1 200px;
+}
+
+.sm-when {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+.sm-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 10px 8px;
+}
+
+.sm-tags-label {
+  margin-right: 2px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.sm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.sm-chip:hover {
+  color: var(--text-normal);
+  border-color: var(--text-muted);
+}
+
+.sm-chip.is-on {
+  color: var(--text-on-accent);
+  background: var(--interactive-accent) !important;
+  border-color: var(--interactive-accent);
+}
+
+.sm-chip-n {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.sm-card {
+  padding: 10px 12px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.sm-card:hover {
+  border-color: var(--text-faint);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+}
