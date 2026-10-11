@@ -337,7 +337,14 @@ function formatDaily(format, date) {
 class SimpleMemosPlugin extends Plugin {
   async onload() {
     // 只读一次设置：不扫描库、不监听事件、不起定时器
-    await this.loadSettings();
+    // （读设置失败不能让整个插件加载失败 —— 否则视图注册不上，标签页会变成"插件不再活动"）
+    try {
+      await this.loadSettings();
+    } catch (e) {
+      console.error('Simple Memos: 读取设置失败，改用默认设置', e);
+      new Notice('Simple Memos：设置读取失败，已改用默认设置（详见控制台）');
+      this.settings = normalizeSettings(null);
+    }
 
     this.registerView(VIEW_TYPE, (leaf) => new MemosView(leaf, this));
 
@@ -425,10 +432,24 @@ class SimpleMemosPlugin extends Plugin {
     new Notice(`已记到 ${res.path}`);
   }
 
+  /**
+   * 打开备忘视图。
+   * ⚠️ 必须区分"真的是我的视图"和"占位标签页"：插件尚未注册时 Obsidian 会留下一个
+   * 同类型但内容为「插件不再活动」的占位页；旧写法只看类型就 reveal，于是永远停在占位页
+   * （2026-10-11 真机踩到）。这里对占位页直接重建视图状态。
+   */
   async activateView() {
-    const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE);
-    if (existing.length) {
-      this.app.workspace.revealLeaf(existing[0]);
+    const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE);
+    for (const leaf of leaves) {
+      if (leaf.view instanceof MemosView) {
+        this.app.workspace.revealLeaf(leaf);
+        return;
+      }
+    }
+    const stale = leaves[0];
+    if (stale) {
+      await stale.setViewState({ type: VIEW_TYPE, active: true });
+      this.app.workspace.revealLeaf(stale);
       return;
     }
     const leaf = this.app.workspace.getRightLeaf(false);
@@ -455,7 +476,7 @@ class MemosView extends ItemView {
   }
 
   getDisplayText() {
-    return '备忘';
+    return 'memos';
   }
 
   getIcon() {

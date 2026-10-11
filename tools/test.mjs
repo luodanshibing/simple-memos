@@ -62,6 +62,9 @@ ok(!/workspace\.on\(|onLayoutReady/.test(onloadBody), 'onload 不监听 workspac
 ok(/registerView/.test(onloadBody), 'onload 只注册视图');
 ok(!/setInterval/.test(SRC), '整个源码没有 setInterval');
 ok(/registerEvent\(this\.app\.vault\.on/.test(SRC), '文件监听挂在视图上（随视图注销）');
+ok(/leaf\.view instanceof MemosView/.test(SRC), '打开视图时区分真视图与占位标签页');
+ok(/getDisplayText\(\)\s*\{\s*return 'memos'/.test(SRC), '标签页标题是 memos');
+ok(/读取设置失败/.test(SRC), '读设置失败不会让插件加载失败');
 
 /* ---------- 1. 设置 ---------- */
 eq(Object.keys(T.DEFAULT_SETTINGS).length, 11, '默认设置 11 项');

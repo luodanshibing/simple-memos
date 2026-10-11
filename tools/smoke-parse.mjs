@@ -33,6 +33,15 @@ if (!targets.length) {
   process.exit(1);
 }
 
+/** 递归收集 .md（库里目录是分层的，只扫一层会漏） */
+function collectMarkdown(dir, files) {
+  for (const name of readdirSync(dir, { withFileTypes: true })) {
+    const p = join(dir, name.name);
+    if (name.isDirectory()) collectMarkdown(p, files);
+    else if (extname(p).toLowerCase() === '.md') files.push(p);
+  }
+}
+
 const files = [];
 for (const t of targets) {
   let st;
@@ -43,10 +52,7 @@ for (const t of targets) {
     continue;
   }
   if (st.isDirectory()) {
-    for (const name of readdirSync(t)) {
-      const p = join(t, name);
-      if (statSync(p).isFile() && extname(p).toLowerCase() === '.md') files.push(p);
-    }
+    collectMarkdown(t, files);
   } else {
     files.push(t);
   }
