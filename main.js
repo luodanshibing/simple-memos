@@ -42,6 +42,7 @@ const DEFAULT_SETTINGS = {
   groupByDayInSingleFile: false, // 单文件模式下是否按天加 `# YYYY-MM-DD` 标题
   dailyFolder: '', // 留空 = 跟随核心「日记」插件
   dailyFormat: '', // 留空 = 跟随核心「日记」插件
+  banner: '', // 顶部题图：http(s) 链接、data:，或库内图片路径；留空用主题渐变
   authorName: '我', // 视图头显示的名字
   avatar: '🙂', // 视图头显示的头像（文字 / emoji，不用图片）
   maxWidth: 800, // 内容最大宽度（px），对齐 simple-home-tab 的 50rem
@@ -658,6 +659,23 @@ class MemosView extends ItemView {
     root.empty();
     root.style.setProperty('--sm-max-width', `${s.maxWidth}px`);
 
+    // 题图：留空就用主题渐变（不引入图片文件）
+    const banner = root.createDiv({ cls: 'sm-banner' });
+    const src = String(s.banner || '').trim();
+    if (src) {
+      let url = src;
+      if (!/^(https?:|data:|app:)/i.test(src)) {
+        try {
+          url = this.app.vault.adapter.getResourcePath(src);
+        } catch (e) {
+          url = src;
+        }
+      }
+      banner.style.backgroundImage = `url("${url}")`;
+      banner.addClass('has-image');
+    }
+    banner.createDiv({ cls: 'sm-banner-veil' });
+
     // 顶部工具条：标题 + 刷新 + 排序 + 搜索（Thino 那种一行式）
     const tools = root.createDiv({ cls: 'sm-tools' });
     tools.createDiv({ cls: 'sm-brand', text: 'MEMOS' });
@@ -695,18 +713,6 @@ class MemosView extends ItemView {
       }
     });
     const bar = box.createDiv({ cls: 'sm-compose-bar' });
-    const paste = bar.createEl('button', { text: '粘贴', cls: 'sm-btn' });
-    paste.addEventListener('click', async () => {
-      try {
-        const t = await navigator.clipboard.readText();
-        if (t) this.inputEl.value = this.inputEl.value ? `${this.inputEl.value}\n${t}` : t;
-        this.inputEl.focus();
-      } catch (e) {
-        new Notice('读剪贴板失败');
-      }
-    });
-    const more = bar.createEl('button', { text: '加载更多', cls: 'sm-btn' });
-    more.addEventListener('click', () => this.loadMore());
     this.targetEl = bar.createDiv({ cls: 'sm-target' });
     this.saveBtn = bar.createEl('button', { text: 'NOTE', cls: 'mod-cta sm-btn' });
     this.saveBtn.addEventListener('click', () => this.submit());
@@ -823,6 +829,11 @@ class MemosView extends ItemView {
         evt.preventDefault();
         this.openAt(m);
       });
+    }
+    if (shown.length && !this.query) {
+      const more = list.createDiv({ cls: 'sm-more' });
+      const btn = more.createEl('button', { cls: 'sm-btn', text: `加载更早（当前读最近 ${this.days} 天）` });
+      btn.addEventListener('click', () => this.loadMore());
     }
     if (this.metaEl) {
       const now = new Date();
@@ -1042,6 +1053,10 @@ class SimpleMemosSettingTab extends PluginSettingTab {
       .setName('显示名字')
       .setDesc('视图头部显示的名字')
       .addText((t) => t.setValue(s.authorName).onChange(bind('authorName')));
+    new Setting(containerEl)
+      .setName('题图')
+      .setDesc('留空 = 主题渐变；也可填图片 URL，或库内图片路径（如 assets/cover.jpg）')
+      .addText((t) => t.setValue(s.banner).onChange(bind('banner', (v) => v.trim())));
     new Setting(containerEl)
       .setName('头像')
       .setDesc('一个字符 / emoji 即可（不引入图片文件）')

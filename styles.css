@@ -555,3 +555,113 @@
   font-size: 11px;
   color: var(--text-faint);
 }
+
+/* ============================================================
+   v1.3.1 —— 按反馈收尾：通栏工具条 / 题图 / 卡片去底色 / 热力图铺满
+   ============================================================ */
+
+/* 工具条通栏（之前被 max-width 收成"窄岛"，很不协调） */
+.sm-tools {
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 16px;
+  gap: 10px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sm-brand {
+  margin-right: 2px;
+}
+
+.sm-search {
+  flex: 0 1 260px;
+  height: 36px;
+  font-size: 14px;
+}
+
+/* 题图：整幅铺开，圆角，底部渐隐；没设图时用主题渐变兜底 */
+.sm-banner {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  margin: 0 0 8px;
+  overflow: hidden;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--interactive-accent) 22%, var(--background-secondary)), var(--background-secondary));
+  background-size: cover;
+  background-position: center;
+}
+
+.sm-banner.has-image {
+  background-color: var(--background-secondary);
+}
+
+.sm-banner-veil {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 60%;
+  background: linear-gradient(to bottom, transparent, var(--background-primary));
+  pointer-events: none;
+}
+
+/* 头部紧接题图 */
+.sm-head {
+  padding-top: 6px;
+}
+
+.sm-avatar {
+  width: 76px;
+  height: 76px;
+  font-size: 36px;
+  margin-top: -46px;
+  border: 3px solid var(--background-primary);
+}
+
+/* 热力图铺满列宽（之前只有一半宽） */
+.sm-heat {
+  padding: 4px 10px 10px;
+}
+
+.sm-heat-grid {
+  width: 100%;
+  grid-auto-columns: 1fr;
+  grid-template-rows: repeat(7, 14px);
+  gap: 3px;
+}
+
+.sm-heat-cell {
+  width: auto;
+  height: 14px;
+  border-radius: 3px;
+}
+
+/* 卡片去底色：改成发丝线分隔的列表（home-tab 那种干净感） */
+.sm-card {
+  padding: 14px 2px;
+  background: transparent !important;
+  border: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-radius: 0;
+  box-shadow: none !important;
+  transition: background 0.12s;
+}
+
+.sm-card:hover {
+  background: var(--background-modifier-hover) !important;
+  border-radius: 8px;
+}
+
+.sm-card:hover .sm-acts {
+  opacity: 1;
+}
+
+/* 「加载更早」放列表末尾 */
+.sm-more {
+  padding: 12px 0 4px;
+  text-align: center;
+}
+
+/* 输入框稍微收一点，和列宽对齐 */
+.sm-compose {
+  padding: 6px 10px 4px;
+}
