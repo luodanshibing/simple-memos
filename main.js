@@ -347,6 +347,9 @@ class SimpleMemosPlugin extends Plugin {
     }
 
     this.registerView(VIEW_TYPE, (leaf) => new MemosView(leaf, this));
+    // 插件启用前留下的"死亡标签页"（工作区里存着 simple-memos-view 但视图没建成）：
+    // 布局就绪后自动重建，用户不需要再手动点命令。注册视图是同步的，这里只是补一次善后。
+    this.app.workspace.onLayoutReady(() => this.recoverStaleLeaves());
 
     this.addCommand({
       id: 'open-memos',
@@ -430,6 +433,24 @@ class SimpleMemosPlugin extends Plugin {
     if (!text || !text.trim()) return new Notice('没有选中内容');
     const res = await this.saveMemo(text.trim(), new Date());
     new Notice(`已记到 ${res.path}`);
+  }
+
+  /**
+   * 把"占位标签页"重建为真视图（工作区里可能存着插件未注册时留下的同类型叶子）。
+   * 只在布局就绪时跑一次，不轮询、不监听。
+   */
+  async recoverStaleLeaves() {
+    let fixed = 0;
+    for (const leaf of this.app.workspace.getLeavesOfType(VIEW_TYPE)) {
+      if (leaf.view instanceof MemosView) continue;
+      try {
+        await leaf.setViewState({ type: VIEW_TYPE, active: false });
+        fixed += 1;
+      } catch (e) {
+        console.error('Simple Memos: 重建占位标签页失败', e);
+      }
+    }
+    if (fixed) console.log(`Simple Memos: 已重建 ${fixed} 个占位标签页`);
   }
 
   /**
