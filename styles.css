@@ -985,3 +985,46 @@
 .sm-profile .sm-heat-legend {
   margin-top: 4px;
 }
+
+/* ---------- v1.3.8 画像区字号收敛 + 区域协调 ---------- */
+
+.sm-profile .sm-clock {
+  margin-top: 2px;
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.5px;
+}
+
+.sm-profile .sm-name {
+  font-size: 21px;
+  line-height: 1.2;
+}
+
+.sm-profile .sm-meta {
+  margin-top: 3px;
+}
+
+.sm-meta-line {
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.sm-meta-line-2 {
+  font-size: 12px;
+}
+
+.sm-profile {
+  gap: 16px;
+  padding: 6px 2px 4px;
+}
+
+.sm-profile .sm-avatar {
+  width: 60px;
+  height: 60px;
+  font-size: 28px;
+}
+
+.sm-profile .sm-heat-grid {
+  max-height: 112px;
+}
