@@ -744,3 +744,50 @@
   font-size: 15px;
   line-height: 1.7;
 }
+
+/* ---------- v1.3.3 对齐 simple-home-tab 的"单列"版式 ---------- */
+
+/* 工具条不再通栏：收进内容列（之前是 full-bleed，看着像另一个应用的头） */
+.sm-tools {
+  max-width: var(--sm-max-width, 800px) !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 4px 2px 8px !important;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* 题图：card 模式必须收进列宽并居中（full 才是通栏） */
+.sm-banner {
+  width: 100% !important;
+  max-width: var(--sm-max-width, 800px) !important;
+  margin: 0 auto 6px !important;
+}
+
+.sm-banner.is-full {
+  width: 100% !important;
+  max-width: none !important;
+  border-radius: 0 !important;
+  margin: 0 0 6px !important;
+}
+
+/* 输入框去掉底色（用户要求），只留边框与聚焦光晕 */
+.sm-input {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.sm-input:focus {
+  background: transparent !important;
+}
+
+/* 卡片区、热力图、标签条与输入框同列 */
+.sm-heat,
+.sm-tags,
+.sm-compose,
+.sm-list,
+.sm-status {
+  max-width: var(--sm-max-width, 800px);
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
