@@ -80,6 +80,40 @@ const clashes = viewMethods.filter((m) => reserved.indexOf(m) >= 0);
 eq(clashes, [], '视图类没有覆盖 Obsidian 的 View API（addAction 等）');
 eq(viewMethods.indexOf('addCardButton') >= 0, true, '卡片按钮用的是自己的方法名 addCardButton');
 eq(/this\.addCardButton\(/.test(SRC), true, '调用处也已改名');
+
+/* ---------- 0c. 单文件：日期标题用二级 + 列表式备忘要挂上日期（2026-10-11 用户反馈） ---------- */
+eq(T.appendWithDayHeading('', '- 09:05 x', '2026-10-11'), '## 2026-10-11\n\n- 09:05 x\n', '按天分组用二级标题');
+eq(
+  T.appendWithDayHeading('# 2026-10-11\n\n- 08:00 旧', '- 09:05 x', '2026-10-11').indexOf('## 2026-10-11'),
+  -1,
+  '旧文件里已有一级日期标题时不再补'
+);
+const singleFileDoc = ['## 2026-10-11', '', '- 18:56 再测试一下', '- 19:02 第二条', '', '## 2026-10-10', '', '- 08:00 昨天的'].join('\n');
+const sf = T.parseMemos(singleFileDoc);
+eq(sf.length, 3, '单文件里 3 条列表式备忘');
+eq(sf[0].dateText, '2026-10-11', '列表式备忘挂上上面的日期标题');
+eq(sf[2].dateText, '2026-10-10', '换到下一个日期标题后跟着变');
+eq(T.memoSortKey(sf[0], ''), '202610111856', '排序键用日期标题，不再沉底');
+eq(T.memoSortKey(sf[0], '') > T.memoSortKey(sf[2], ''), true, '新的在前');
+
+/* ---------- 0d. 写入格式自适应（写到 thino 文件就用 callout，Thino 才读得懂） ---------- */
+eq(T.effectiveMemoStyle({ memoStyle: 'callout' }, 'x.md', ''), 'callout', '显式选 callout');
+eq(T.effectiveMemoStyle({ storageMode: 'single-file' }, '1 Obsidian/Thino/2026.thino.md', ''), 'callout', '目标是 .thino.md → 自动 callout');
+eq(T.effectiveMemoStyle({ storageMode: 'single-file' }, 'a.md', '> [!thino] 2025/01/06 …'), 'callout', '文件里已有 thino 块 → 自动 callout');
+eq(T.effectiveMemoStyle({ storageMode: 'single-file' }, 'memos.md', ''), 'list', '普通单文件 → 列表式');
+eq(T.effectiveMemoStyle({ storageMode: 'daily-end' }, 'a.md', ''), 'list', '日记模式 → 列表式');
+
+/* ---------- 0e. 热力图（纯函数） ---------- */
+const heat = T.heatmapCells([{ dateText: '2026-10-11' }, { dateText: '2026-10-11' }, { dateText: '2026-10-10' }], 2, new Date(2026, 9, 11));
+eq(heat.length, 14, '两周 = 14 格');
+eq(heat[heat.length - 1].date, '2026-10-11', '最后一格是今天');
+eq(heat[heat.length - 1].count, 2, '今天两条');
+eq(heat[heat.length - 2].count, 1, '昨天一条');
+eq(T.heatLevel(0), 0, '等级 0');
+eq(T.heatLevel(1), 1, '等级 1');
+eq(T.heatLevel(3), 2, '等级 2');
+eq(T.heatLevel(5), 3, '等级 3');
+eq(T.heatLevel(9), 4, '等级 4');
 ok(/registerView/.test(onloadBody), 'onload 只注册视图');
 ok(!/setInterval/.test(SRC), '整个源码没有 setInterval');
 ok(/registerEvent\(this\.app\.vault\.on/.test(SRC), '文件监听挂在视图上（随视图注销）');
@@ -88,7 +122,7 @@ ok(/getDisplayText\(\)\s*\{\s*return 'memos'/.test(SRC), '标签页标题是 mem
 ok(/读取设置失败/.test(SRC), '读设置失败不会让插件加载失败');
 
 /* ---------- 1. 设置 ---------- */
-eq(Object.keys(T.DEFAULT_SETTINGS).length, 11, '默认设置 11 项');
+eq(Object.keys(T.DEFAULT_SETTINGS).length, 15, '默认设置 15 项');
 eq(T.DEFAULT_SETTINGS.storageMode, 'daily-end', '默认写日记末尾');
 eq(T.DEFAULT_SETTINGS.memoStyle, 'list', '默认用列表式（与 Thino 在日记里的写法一致）');
 eq(T.DEFAULT_SETTINGS.deleteMode, 'remove', '默认直接删除');
@@ -213,8 +247,8 @@ eq(T.buildInsert('', '- 09:05 x', { storageMode: 'single-file' }, '2026-10-11').
 eq(T.buildInsert('', '- 09:05 x', { storageMode: 'single-file' }, '2026-10-11').text, '- 09:05 x\n', '单文件（不分组）直接追加');
 eq(
   T.buildInsert('', '- 09:05 x', { storageMode: 'single-file', groupByDayInSingleFile: true }, '2026-10-11').text,
-  '# 2026-10-11\n\n- 09:05 x\n',
-  '单文件（分组）先写日期标题'
+  '## 2026-10-11\n\n- 09:05 x\n',
+  '单文件（分组）先写二级日期标题'
 );
 
 /* ---------- 9. 删除 / 编辑 ---------- */

@@ -42,6 +42,10 @@ const DEFAULT_SETTINGS = {
   groupByDayInSingleFile: false, // 单文件模式下是否按天加 `# YYYY-MM-DD` 标题
   dailyFolder: '', // 留空 = 跟随核心「日记」插件
   dailyFormat: '', // 留空 = 跟随核心「日记」插件
+  authorName: '我', // 视图头显示的名字
+  avatar: '🙂', // 视图头显示的头像（文字 / emoji，不用图片）
+  maxWidth: 720, // 内容最大宽度（px），免得宽屏上摊得太开
+  showHeatmap: true, // 显示热力图（按天统计条数）
 };
 
 /* §2 纯函数 =============================================================== */
@@ -65,6 +69,10 @@ function normalizeSettings(raw) {
   out.recentDays = clampInt(out.recentDays, 1, 3650, 30);
   out.hideDeleted = !!out.hideDeleted;
   out.groupByDayInSingleFile = !!out.groupByDayInSingleFile;
+  out.showHeatmap = !!out.showHeatmap;
+  out.maxWidth = clampInt(out.maxWidth, 480, 1200, 720);
+  out.authorName = String(out.authorName == null ? '我' : out.authorName);
+  out.avatar = String(out.avatar == null ? '🙂' : out.avatar);
   return out;
 }
 
@@ -145,6 +153,7 @@ function parseMemos(text) {
   const lines = String(text == null ? '' : text).split('\n');
   const out = [];
   let fence = null;
+  let day = '';
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
     const fm = /^\s*(```|~~~)/.exec(line);
@@ -155,13 +164,20 @@ function parseMemos(text) {
     }
     if (fence !== null) continue;
 
+    // 单文件里用 `# / ## YYYY-MM-DD` 分组：记住当前日期，下面没有日期的列表式备忘就挂在它下面
+    const dayHead = /^#{1,3}\s+(\d{4})-(\d{1,2})-(\d{1,2})\s*$/.exec(line);
+    if (dayHead) {
+      day = `${dayHead[1]}-${pad2(dayHead[2])}-${pad2(dayHead[3])}`;
+      continue;
+    }
+
     const list = parseListMemo(line);
     if (list) {
       out.push({
         startLine: i,
         endLine: i,
         kind: 'list',
-        dateText: '',
+        dateText: day,
         time: list.time,
         endTime: list.endTime,
         body: list.body,
@@ -203,7 +219,21 @@ function parseMemos(text) {
 }
 
 /** 生成一条列表式备忘（与 Thino 的 `- HH:mm 内容` 同构） */
-function renderListMemo(time, body) {
+/**
+ * 实际使用的写入格式（纯函数）：
+ *   设置选 callout → callout；
+ *   否则写到 thino 单文件（`*.thino.md`，或文件里已有 `[!thino]`）时自动用 callout ——
+ *   这样写进 Thino 自己的文件，Thino 仍能读（兼容旧数据的关键）。
+ */
+function effectiveMemoStyle(settings, path, currentText) {
+  const s = normalizeSettings(settings);
+  if (s.memoStyle === 'callout') return 'callout';
+  if (s.storageMode !== 'single-file') return 'list';
+  const p = String(path == null ? '' : path);
+  if (/\.thino\.md$/i.test(p)) return 'callout';
+  if (String(currentText == null ? '' : currentText).indexOf('[!thino]') >= 0) return 'callout';
+  return 'list';
+}function renderListMemo(time, body) {
   return `- ${time} ${String(body == null ? '' : body).replace(/\s+$/, '')}`;
 }
 
@@ -266,12 +296,16 @@ function insertUnderHeading(text, block, headingText) {
   return `${next.join('\n').replace(/\s+$/, '')}\n`;
 }
 
-/** 单文件按天分组：需要时先补一行 `# YYYY-MM-DD` */
+/**
+ * 单文件按天分组：需要时先补一行日期标题。
+ * 用**二级**标题 —— 一级在 Obsidian 里太大、也抢文档标题的位置（用户 2026-10-11 反馈）；
+ * 判重时一级 / 二级都认，兼容旧文件里已有的 `# YYYY-MM-DD`。
+ */
 function appendWithDayHeading(text, block, dateKey) {
   const src = String(text == null ? '' : text);
-  const has = new RegExp(`^#\\s+${dateKey.replace(/[-]/g, '[-]')}\\s*$`, 'm').test(src);
+  const has = new RegExp(`^#{1,2}\\s+${dateKey}\\s*$`, 'm').test(src);
   if (has) return appendToEnd(src, block);
-  return appendToEnd(src, `# ${dateKey}\n\n${block}`);
+  return appendToEnd(src, `## ${dateKey}\n\n${block}`);
 }
 
 /**
@@ -306,7 +340,35 @@ function replaceLines(text, startLine, endLine, newLines) {
   return lines.slice(0, startLine).concat(newLines).concat(lines.slice(endLine + 1)).join('\n');
 }
 
-/** 备忘在时间线里的排序键（新的在前）。callout 有日期，列表式用所在文件的日期。 */
+/** 热力图的格子（纯函数）：截至 today 的最近 weeks 周，每天一个 {date, count} */
+function heatmapCells(memos, weeks, today) {
+  const n = Math.max(1, clampInt(weeks, 1, 104, 20)) * 7;
+  const end = today instanceof Date ? today : new Date();
+  const counts = {};
+  for (const m of Array.isArray(memos) ? memos : []) {
+    const d = (m && (m.dateText || m.fileDay)) || '';
+    if (!d) continue;
+    counts[d] = (counts[d] || 0) + 1;
+  }
+  const start = new Date(end.getFullYear(), end.getMonth(), end.getDate() - (n - 1));
+  const cells = [];
+  for (let i = 0; i < n; i += 1) {
+    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+    const key = dayKey(d);
+    cells.push({ date: key, count: counts[key] || 0 });
+  }
+  return cells;
+}
+
+/** 热力等级 0–4（纯函数） */
+function heatLevel(count) {
+  const c = Number(count) || 0;
+  if (c <= 0) return 0;
+  if (c === 1) return 1;
+  if (c <= 3) return 2;
+  if (c <= 6) return 3;
+  return 4;
+}/** 备忘在时间线里的排序键（新的在前）。callout 有日期，列表式用所在文件的日期或日期标题。 */
 function memoSortKey(memo, fileDay) {
   const m = memo || {};
   const day = m.dateText || fileDay || '';
@@ -405,7 +467,7 @@ class SimpleMemosPlugin extends Plugin {
     }
     const s = this.settings;
     const block =
-      s.memoStyle === 'callout'
+      effectiveMemoStyle(s, path, text) === 'callout'
         ? renderCalloutMemo(dayKey(when), timeKey(when), body, `${stampId(when)}-${Math.random().toString(16).slice(2, 8)}`)
         : renderListMemo(timeKey(when), body);
     const built = buildInsert(text, block, s, dayKey(when));
@@ -501,7 +563,8 @@ class MemosView extends ItemView {
   }
 
   getIcon() {
-    return 'sticky-note';
+    // 'sticky-note' 在这个主题/版本里落成了通用文档图标，换成一定会渲染的消息图标（用户反馈"文档图标有点丑"）
+    return 'message-square-text';
   }
 
   async onOpen() {
@@ -525,7 +588,18 @@ class MemosView extends ItemView {
 
   buildShell() {
     const root = this.contentEl;
+    const s = this.plugin.settings;
     root.empty();
+    root.style.setProperty('--sm-max-width', `${s.maxWidth}px`);
+
+    // 头部：头像 + 名字 + 日期 / 条数（Thino 那种观感，但用文字头，不引入图片）
+    const head = root.createDiv({ cls: 'sm-head' });
+    head.createDiv({ cls: 'sm-avatar', text: s.avatar || '🙂' });
+    const who = head.createDiv({ cls: 'sm-who' });
+    who.createDiv({ cls: 'sm-name', text: s.authorName || '我' });
+    this.metaEl = who.createDiv({ cls: 'sm-meta' });
+
+    this.heatEl = root.createDiv({ cls: 'sm-heat' });
 
     const box = root.createDiv({ cls: 'sm-compose' });
     this.inputEl = box.createEl('textarea', { cls: 'sm-input' });
@@ -661,7 +735,30 @@ class MemosView extends ItemView {
         this.openAt(m);
       });
     }
+    if (this.metaEl) {
+      const now = new Date();
+      const wk = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
+      this.metaEl.setText(`${dayKey(now)} 星期${wk} · 时间线 ${shown.length} 条${this.query ? `（共 ${this.memos.length} 条）` : ''}`);
+    }
+    this.renderHeat();
     this.statusEl.setText(`${shown.length} 条${this.query ? `（共 ${this.memos.length} 条）` : ''} · 已读最近 ${this.days} 天`);
+  }
+
+  /** 热力图：最近 20 周按天统计条数（纯 CSS 格子，不用 canvas、不加依赖） */
+  renderHeat() {
+    if (!this.heatEl) return;
+    this.heatEl.empty();
+    if (!this.plugin.settings.showHeatmap) return;
+    const cells = heatmapCells(this.memos, 20, new Date());
+    const wrap = this.heatEl.createDiv({ cls: 'sm-heat-grid' });
+    for (const c of cells) {
+      const el = wrap.createDiv({ cls: `sm-heat-cell lv${heatLevel(c.count)}` });
+      el.setAttribute('title', `${c.date}：${c.count} 条`);
+    }
+    const legend = this.heatEl.createDiv({ cls: 'sm-heat-legend' });
+    legend.createSpan({ text: '少' });
+    for (let l = 0; l <= 4; l += 1) legend.createDiv({ cls: `sm-heat-cell lv${l}` });
+    legend.createSpan({ text: '多' });
   }
 
   /**
@@ -865,6 +962,22 @@ class SimpleMemosSettingTab extends PluginSettingTab {
       .setName('藏掉已删除的备忘')
       .setDesc('把带 [deleted::…] 标记的备忘从时间线里隐藏')
       .addToggle((t) => t.setValue(!!s.hideDeleted).onChange(bind('hideDeleted')));
+    new Setting(containerEl)
+      .setName('显示名字')
+      .setDesc('视图头部显示的名字')
+      .addText((t) => t.setValue(s.authorName).onChange(bind('authorName')));
+    new Setting(containerEl)
+      .setName('头像')
+      .setDesc('一个字符 / emoji 即可（不引入图片文件）')
+      .addText((t) => t.setValue(s.avatar).onChange(bind('avatar')));
+    new Setting(containerEl)
+      .setName('内容最大宽度')
+      .setDesc('480–1200 px；宽屏上免得摊得太开')
+      .addSlider((sl) => sl.setLimits(480, 1200, 20).setValue(s.maxWidth).setDynamicTooltip().onChange(bind('maxWidth')));
+    new Setting(containerEl)
+      .setName('显示热力图')
+      .setDesc('头部下面按天统计条数（最近 20 周，纯 CSS 格子）')
+      .addToggle((t) => t.setValue(!!s.showHeatmap).onChange(bind('showHeatmap')));
 
     containerEl.createEl('h3', { text: '关于' });
     containerEl.createEl('p', {
@@ -909,6 +1022,9 @@ module.exports.__test = {
   removeLines,
   replaceLines,
   memoSortKey,
+  effectiveMemoStyle,
+  heatmapCells,
+  heatLevel,
   resolveTargetPath,
   formatDaily,
 };
