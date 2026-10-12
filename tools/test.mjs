@@ -293,6 +293,33 @@ ok(typeof SimpleMemosPlugin === 'function', '默认导出是插件类');
 eq(SimpleMemosPlugin.VIEW_TYPE, 'simple-memos-view', '视图类型');
 ok(Object.keys(SimpleMemosPlugin.__test).length > 20, '导出的纯函数足够多');
 
+/* ---------- 12. 真实互操作（2026-10-12 实测）：QuickAdd「快速捕捉」写入当日日记末端 ---------- */
+/* 磁盘实况（B Listing/B3 日记清单/2026-10-12【日记】.md 末 12 行）：
+     前面是任务复选框 - [ ] …
+     ---
+     - 00:33 今天晚上又coding到半夜，其实跟玩游戏是一样的。
+     - 09:57 绿联异常访问IP封锁问题解决          ← 文件最后一行，末尾无换行
+*/
+const dailyReal = [
+  '# 2026-10-12',
+  '',
+  '- [ ] 续订microsoft 365 家庭版',
+  '- [ ] 咨询绿联售后安全问题',
+  '',
+  '---',
+  '',
+  '- 00:33 今天晚上又coding到半夜，其实跟玩游戏是一样的。',
+  '',
+  '- 09:57 绿联异常访问IP封锁问题解决',
+].join('\n');
+const memoReal = T.parseMemos(dailyReal);
+eq(memoReal.length, 2, '真实样例：只把 - HH:mm 行当备忘（任务复选框不被误判）');
+eq(memoReal[0].time, '00:33', '真实样例：第一条时间');
+eq(memoReal[1].time, '09:57', '真实样例：第二条时间');
+eq(memoReal[1].body, '绿联异常访问IP封锁问题解决', '真实样例：内容干净无残留');
+eq(T.renderListMemo(memoReal[1].time, memoReal[1].body), '- 09:57 绿联异常访问IP封锁问题解决', '真实样例：往返形态与 QuickAdd 写入一致');
+eq(memoReal.every((m) => !/\[ \]/.test(String(m.body || ''))), true, '真实样例：复选框内容没混进备忘正文');
+
 if (fails.length === 0) {
   console.log(`\n通过 ${pass} 项，失败 0 项\n全部通过 ✓\n`);
 } else {
