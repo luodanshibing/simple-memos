@@ -191,18 +191,29 @@ function parseMemos(text) {
 
     const list = parseListMemo(line);
     if (list) {
+      // 收集缩进续行（标准 Markdown 列表续行）：`- 21:25 第一行` + 缩进的 `  第二行`
+      // ⚠️ 只认**缩进**续行：不缩进的普通行可能是无关正文，并进来会误吞内容（宁可不合并）
+      const bodyLines = [list.body];
+      let j = i + 1;
+      while (j < lines.length && /^\s+\S/.test(lines[j]) && !parseListMemo(lines[j])) {
+        bodyLines.push(lines[j].replace(/^\s+/, ''));
+        j += 1;
+      }
+      const mergedBody = bodyLines.join('\n').replace(/\s+$/, '');
+      const mergedFields = parseInlineFields(mergedBody);
       out.push({
         startLine: i,
-        endLine: i,
+        endLine: j - 1,
         kind: 'list',
         dateText: day,
         time: list.time,
         endTime: list.endTime,
-        body: list.body,
-        deleted: list.deleted,
-        id: list.id,
-        tags: list.tags,
+        body: mergedBody,
+        deleted: list.deleted || !!mergedFields.deleted,
+        id: list.id || mergedFields.id || '',
+        tags: extractTags(mergedBody),
       });
+      i = j - 1;
       continue;
     }
 
@@ -251,8 +262,21 @@ function effectiveMemoStyle(settings, path, currentText) {
   if (/\.thino\.md$/i.test(p)) return 'callout';
   if (String(currentText == null ? '' : currentText).indexOf('[!thino]') >= 0) return 'callout';
   return 'list';
-}function renderListMemo(time, body) {
-  return `- ${time} ${String(body == null ? '' : body).replace(/\s+$/, '')}`;
+}/**
+ * 生成一条列表式备忘。
+ *
+ * ⚠️ 2026-10-14 用户报的 bug：「记录时如果换行，会因为没有时间戳而被忽略」。
+ *   原因：原实现把整个 body 直接拼在 `- HH:mm ` 后面，多行时第二行起是 **没有时间戳的裸行**，
+ *   而解析器 `parseMemos` 只认「`- HH:mm 内容`」开头的行 → 续行全部被丢掉（数据实际上丢在笔记里了）。
+ *   修法：**续行缩进 2 个空格**（标准 Markdown 列表续行写法），解析器再把缩进续行并回上一条。
+ *   兼容性：旧数据里那些"非缩进续行"也一并支持（见 parseMemos），不需要改历史笔记。
+ */
+function renderListMemo(time, body) {
+  const text = String(body == null ? '' : body).replace(/\s+$/, '');
+  const lines = text.split('\n');
+  const head = `- ${time} ${lines[0] || ''}`.replace(/\s+$/, '');
+  if (lines.length <= 1) return head;
+  return [head].concat(lines.slice(1).map((l) => (l ? `  ${l}` : '  '))).join('\n');
 }
 
 /** 生成一条 callout 式备忘（与 1 Obsidian/Thino/*.thino.md 同构） */

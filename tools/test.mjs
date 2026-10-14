@@ -239,6 +239,26 @@ eq(
 eq(T.parseMemos(callout)[0].body, '第一行\n第二行', '自己生成的能被自己读回（往返）');
 eq(T.parseMemos(T.renderListMemo('09:05', '自测'))[0].body, '自测', '列表式往返');
 
+/* ---------- 6b. 多行备忘（用户 2026-10-14：「记录时如果换行，会因为没有时间戳而被忽略」） ---------- */
+const multi = T.renderListMemo('12:30', '第一行\n第二行\n第三行');
+eq(multi.split('\n')[0], '- 12:30 第一行', '多行：首行带时间戳');
+eq(multi.split('\n')[1], '  第二行', '多行：续行缩进 2 空格（标准列表续行）');
+const multiParsed = T.parseMemos(multi);
+eq(multiParsed.length, 1, '多行备忘解析成 **1 条**（不再把续行当垃圾丢掉）');
+eq(multiParsed[0].body, '第一行\n第二行\n第三行', '多行正文完整读回');
+/* 多行 + 下一条：两条不能串在一起 */
+const twoMemos = T.renderListMemo('12:30', '甲\n甲的续行') + '\n' + T.renderListMemo('13:00', '乙');
+const twoParsed = T.parseMemos(twoMemos);
+eq(twoParsed.length, 2, '多行 + 后续条目 = 2 条');
+eq(twoParsed[0].body, '甲\n甲的续行', '第一条含续行');
+eq(twoParsed[1].body, '乙', '第二条独立');
+/* 不缩进的普通正文行**不许**被吞进备忘（宁可不合并，也不能误吞） */
+const withProse = T.renderListMemo('12:30', '备忘内容') + '\n\n这是一段无关正文。\n';
+eq(T.parseMemos(withProse).length, 1, '不缩进的正文行不会被并入备忘');
+eq(T.parseMemos(withProse)[0].body, '备忘内容', '备忘正文保持干净');
+/* 单行行为不变（回归） */
+eq(T.renderListMemo('21:25', '内容'), '- 21:25 内容', '单行仍与旧格式完全一致（兼容 QuickAdd 写入）');
+
 /* ---------- 7. 插入位置 ---------- */
 eq(T.frontmatterEnd(['---', 'a: 1', '---', 'body']), 3, 'frontmatterEnd');
 eq(T.frontmatterEnd(['body']), 0, '没有 frontmatter');
