@@ -454,22 +454,22 @@ class SimpleMemosPlugin extends Plugin {
 
     this.addCommand({
       id: 'open-memos',
-      name: '打开备忘视图（主区，像 Thino 那样有宽度）',
+      name: '打开备忘视图',
       callback: () => this.activateView(),
     });
     this.addCommand({
       id: 'open-memos-sidebar',
-      name: '打开备忘视图（右侧边栏）',
+      name: '在右侧边栏打开备忘',
       callback: () => this.activateView('sidebar'),
     });
     this.addCommand({
       id: 'quick-memo',
-      name: '快速记录备忘（弹输入框）',
+      name: '快速记录备忘',
       callback: () => this.quickMemo(),
     });
     this.addCommand({
       id: 'memo-from-selection',
-      name: '把选中内容存为备忘',
+      name: '存为备忘',
       editorCallback: (editor) => this.memoFromSelection(editor),
     });
 
@@ -1072,29 +1072,29 @@ class SimpleMemosSettingTab extends PluginSettingTab {
       );
     new Setting(containerEl)
       .setName('章节标题')
-      .setDesc('保存位置选「日记里指定章节下」时用；填标题文字，不带 #；找不到该标题会退回文末并提示')
+      .setDesc('用于「日记里指定章节下」；填标题文字不要带 #；找不到则退回文末')
       .addText((t) => t.setValue(s.headingText).onChange(bind('headingText', (v) => v.trim())));
     new Setting(containerEl)
       .setName('单文件路径')
-      .setDesc('保存位置选「单个文件」时用，例如 memos.md；也可以指向已有的 thino 文件')
+      .setDesc('用于「单个文件」，例如 memos.md')
       .addText((t) => t.setValue(s.singleFilePath).onChange(bind('singleFilePath', (v) => v.trim())));
     new Setting(containerEl)
       .setName('单文件按天分组')
-      .setDesc('开启后，切到新的一天时先写一行 `# YYYY-MM-DD`（与 thino 单文件同构）')
+      .setDesc('切到新的一天时先写一行 `# YYYY-MM-DD`')
       .addToggle((t) => t.setValue(!!s.groupByDayInSingleFile).onChange(bind('groupByDayInSingleFile')));
     new Setting(containerEl)
-      .setName('日记目录（覆盖）')
+      .setName('日记目录')
       .setDesc('留空 = 跟随核心「日记」插件设置')
       .addText((t) => t.setValue(s.dailyFolder).onChange(bind('dailyFolder', (v) => v.trim())));
     new Setting(containerEl)
-      .setName('日记文件名格式（覆盖）')
+      .setName('日记文件名格式')
       .setDesc('留空 = 跟随核心「日记」插件设置')
       .addText((t) => t.setValue(s.dailyFormat).onChange(bind('dailyFormat', (v) => v.trim())));
 
     containerEl.createEl('h3', { text: '写入格式' });
     new Setting(containerEl)
       .setName('备忘格式')
-      .setDesc('列表式 = `- HH:mm 内容`（与 Thino 在日记里的写法一致）；callout 式 = `> [!thino] …`（与 thino 单文件一致）')
+      .setDesc('列表式：`- HH:mm 内容`；callout 式：`> [!thino] …`')
       .addDropdown((d) =>
         d
           .addOption('list', '列表式 `- HH:mm 内容`')
@@ -1104,7 +1104,7 @@ class SimpleMemosSettingTab extends PluginSettingTab {
       );
     new Setting(containerEl)
       .setName('删除方式')
-      .setDesc('直接删掉那一行，或写成 Thino 那种 [deleted::…] 标记（保留原文）')
+      .setDesc('直接删掉那一行，或写成 [deleted::…] 标记')
       .addDropdown((d) =>
         d
           .addOption('remove', '直接删除')
@@ -1116,7 +1116,7 @@ class SimpleMemosSettingTab extends PluginSettingTab {
     containerEl.createEl('h3', { text: '视图' });
     new Setting(containerEl)
       .setName('初次加载天数')
-      .setDesc('打开视图时读最近多少天的日记（1–3650）；下面的「加载更多」可以再加')
+      .setDesc('打开视图时读最近多少天的日记，范围 1–3650')
       .addSlider((sl) => sl.setLimits(1, 365, 1).setValue(s.recentDays).setDynamicTooltip().onChange(bind('recentDays')));
     new Setting(containerEl)
       .setName('藏掉已删除的备忘')
@@ -1128,15 +1128,15 @@ class SimpleMemosSettingTab extends PluginSettingTab {
       .addText((t) => t.setValue(s.authorName).onChange(bind('authorName')));
     new Setting(containerEl)
       .setName('显示题图')
-      .setDesc('顶部题图块（设置项与 Simple Home Tab 同名同义）')
+      .setDesc('顶部题图块')
       .addToggle((t) => t.setValue(!!s.showBanner).onChange(bind('showBanner')));
     new Setting(containerEl)
       .setName('题图来源')
-      .setDesc('图片 URL，或库内图片路径（如 assets/cover.jpg）；留空 = 主题渐变')
+      .setDesc('图片 URL 或库内图片路径，留空用主题渐变')
       .addText((t) => t.setValue(s.bannerPath).onChange(bind('bannerPath', (v) => v.trim())));
     new Setting(containerEl)
       .setName('题图宽度')
-      .setDesc('跟内容同宽（圆角块），或通栏铺满')
+      .setDesc('跟内容同宽，或通栏铺满')
       .addDropdown((d) =>
         d
           .addOption('card', '跟内容同宽')
@@ -1179,15 +1179,15 @@ class SimpleMemosSettingTab extends PluginSettingTab {
       .addSlider((sl) => sl.setLimits(0, 70, 5).setValue(s.bannerOverlay).setDynamicTooltip().onChange(bind('bannerOverlay')));
     new Setting(containerEl)
       .setName('头像')
-      .setDesc('兜底用：一个字符 / emoji（没设头像图片时显示它）')
+      .setDesc('没设头像图片时显示这个字符或 emoji')
       .addText((t) => t.setValue(s.avatar).onChange(bind('avatar')));
     new Setting(containerEl)
       .setName('头像图片')
-      .setDesc('图片 URL，或库内图片路径（如 assets/avatar.png）；设了就用图片（同 Simple Home Tab）')
+      .setDesc('图片 URL 或库内图片路径，设了就用图片')
       .addText((t) => t.setValue(s.avatarPath).onChange(bind('avatarPath', (v) => v.trim())));
     new Setting(containerEl)
       .setName('页面宽度跟随主题')
-      .setDesc('开：用主题的阅读宽度（--file-line-width，跟笔记正文一致）；关：用下面的自定义宽度')
+      .setDesc('开：用主题的阅读宽度；关：用下面的自定义宽度')
       .addToggle((t) => t.setValue(s.widthTheme !== false).onChange(bind('widthTheme')));
     new Setting(containerEl)
       .setName('自定义内容宽度')
@@ -1195,21 +1195,9 @@ class SimpleMemosSettingTab extends PluginSettingTab {
       .addSlider((sl) => sl.setLimits(480, 1200, 20).setValue(s.maxWidth).setDynamicTooltip().onChange(bind('maxWidth')));
     new Setting(containerEl)
       .setName('显示热力图')
-      .setDesc('头部下面按天统计条数（最近 20 周，纯 CSS 格子）')
+      .setDesc('头部下面按天统计条数，最近 20 周')
       .addToggle((t) => t.setValue(!!s.showHeatmap).onChange(bind('showHeatmap')));
-
-    containerEl.createEl('h3', { text: '关于' });
-    containerEl.createEl('p', {
-      cls: 'setting-item-description',
-      text:
-        '启动开销：onload 只读一次设置、注册 1 个视图、3 个命令与设置页 —— 不遍历库、不读文件、不监听事件（文件监听挂在视图上，视图关掉即注销）。',
-    });
-    containerEl.createEl('p', {
-      cls: 'setting-item-description',
-      text:
-        '写入的东西就是普通 Markdown 列表项（或 callout），没有自定义标记；随时可以卸载，笔记不受影响。' +
-        '兼容旧数据：能读 Thino 在日记里的 `- HH:mm 内容`，也能读 `.thino.md` 里的 `> [!thino] …` 块。',
-    });
+    // 原来这里还有「关于」小节与两段开发者向说明（启动开销 / 写入格式）——用户 2026-10-14 裁定删除
   }
 }
 
