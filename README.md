@@ -30,8 +30,8 @@ Also understood: time ranges (`- 14:30 - 15:00 …`), `[deleted::…]` marks, `[
 | Command | What it does |
 |---|---|
 | 打开备忘视图 | Opens the memo view in the right sidebar |
-| 快速记录备忘（弹输入框） | Type a memo in a modal, without opening the view |
-| 把选中内容存为备忘 | Turns the current selection into a memo |
+| 快速记录备忘 | Type a memo in a modal, without opening the view |
+| 存为备忘 | Turns the current selection into a memo |
 
 ### Settings
 
@@ -109,8 +109,8 @@ MIT — see [LICENSE](LICENSE).
 | 命令 | 作用 |
 |---|---|
 | 打开备忘视图 | 在右侧边栏打开备忘视图 |
-| 快速记录备忘（弹输入框） | 不打开视图也能记一条 |
-| 把选中内容存为备忘 | 把当前选中的文字变成一条备忘 |
+| 快速记录备忘 | 不打开视图也能记一条 |
+| 存为备忘 | 把当前选中的文字变成一条备忘 |
 
 ### 设置项
 
@@ -120,7 +120,7 @@ MIT — see [LICENSE](LICENSE).
 | 章节标题 | `Journal` | 「章节下」模式用；找不到该标题会退回文末并提示 |
 | 单文件路径 | `memos.md` | 也可指向已有的 `.thino.md` |
 | 单文件按天分组 | 关 | 切到新一天时先写 `# YYYY-MM-DD` |
-| 日记目录 / 文件名格式（覆盖） | 空 | 空 = 跟随核心「日记」插件 |
+| 日记目录 / 日记文件名格式 | 空 | 空 = 跟随核心「日记」插件 |
 | 备忘格式 | 列表式 | 也可选 callout 式 |
 | 删除方式 | 直接删除 | 也可选 `[deleted::…]` 标记 |
 | 初次加载天数 | 30 | 另有「加载更多」按钮 |
