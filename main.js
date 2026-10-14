@@ -27,7 +27,8 @@ const obsidian = require('obsidian');
 const { Plugin, PluginSettingTab, Setting, Notice, TFile, ItemView, MarkdownRenderer, Modal, Menu, MarkdownView } = obsidian;
 
 const VIEW_TYPE = 'simple-memos-view';
-const LIST_RE = /^[-*+](\s+)(\d{1,2}:\d{2})(?:\s*[-~]\s*(\d{1,2}:\d{2}))?(\s+)(.*)$/;
+// 时间戳后允许**没有正文**（多行备忘写成 `- 12:11` + 下面整块缩进的正文，用户 2026-10-14 定稿）
+const LIST_RE = /^[-*+](\s+)(\d{1,2}:\d{2})(?:\s*[-~]\s*(\d{1,2}:\d{2}))?(?:(\s+)(.*))?$/;
 const CALLOUT_RE = /^>\s*\[!thino\][ \t]*(.*)$/i;
 
 const DEFAULT_SETTINGS = {
@@ -142,7 +143,7 @@ function parseInlineFields(text) {
 function parseListMemo(line) {
   const m = LIST_RE.exec(String(line == null ? '' : line));
   if (!m) return null;
-  const body = m[5].replace(/\s+$/, '');
+  const body = (m[5] == null ? '' : m[5]).replace(/\s+$/, '');
   const fields = parseInlineFields(body);
   return {
     kind: 'list',
@@ -191,12 +192,18 @@ function parseMemos(text) {
 
     const list = parseListMemo(line);
     if (list) {
-      // 收集缩进续行（标准 Markdown 列表续行）：`- 21:25 第一行` + 缩进的 `  第二行`
-      // ⚠️ 只认**缩进**续行：不缩进的普通行可能是无关正文，并进来会误吞内容（宁可不合并）
-      const bodyLines = [list.body];
+      /*
+       * 收集本条备忘的正文行。两种形态都支持：
+       *   · 单一形态（新版多行）：`- 12:11` 时间戳单独一行，正文整块缩进在下面（用户 2026-10-14 定稿）
+       *   · 续行形态（v1.3.9）：`- 12:11 第一行` + 缩进续行
+       * ⚠️ 只认**缩进**行：不缩进的普通行可能是无关正文，并进来会误吞内容（宁可不合并）
+       */
+      const bodyLines = [];
+      if (list.body) bodyLines.push(list.body);
       let j = i + 1;
       while (j < lines.length && /^\s+\S/.test(lines[j]) && !parseListMemo(lines[j])) {
-        bodyLines.push(lines[j].replace(/^\s+/, ''));
+        // 去掉本插件写入的 4 空格块缩进（以及更宽松的 2 空格）后即为正文
+        bodyLines.push(lines[j].replace(/^ {2,4}/, ''));
         j += 1;
       }
       const mergedBody = bodyLines.join('\n').replace(/\s+$/, '');
@@ -273,10 +280,20 @@ function effectiveMemoStyle(settings, path, currentText) {
  */
 function renderListMemo(time, body) {
   const text = String(body == null ? '' : body).replace(/\s+$/, '');
-  const lines = text.split('\n');
-  const head = `- ${time} ${lines[0] || ''}`.replace(/\s+$/, '');
-  if (lines.length <= 1) return head;
-  return [head].concat(lines.slice(1).map((l) => (l ? `  ${l}` : '  '))).join('\n');
+  const lines = text.split('\n').map((l) => l.replace(/\t/g, '    '));
+  // 单行：保持原格式 `- HH:mm 内容`（与 QuickAdd / Thino 写入完全一致，兼容不动）
+  if (lines.length <= 1) return `- ${time} ${lines[0] || ''}`.replace(/\s+$/, '');
+  /*
+   * 多行（用户 2026-10-14 指正的正确做法）：
+   *   `- 12:11`            ← 时间戳单独一行
+   *   `    第一行`          ← 正文整块缩进 4 空格（列表项内段落）
+   *   `    - 子项 A`        ← 用户自己写的多级列表原样保留
+   * 这样"内容整体挪到下一行再统一缩进"，多级列表不会再从时间戳后面挂出来。
+   */
+  const INDENT = '    ';
+  const head = `- ${time}`.replace(/\s+$/, '');
+  const block = lines.map((l) => (l.trim() ? INDENT + l : ''));
+  return [head].concat(block).join('\n').replace(/\s+$/, '');
 }
 
 /** 生成一条 callout 式备忘（与 1 Obsidian/Thino/*.thino.md 同构） */

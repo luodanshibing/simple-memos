@@ -239,13 +239,31 @@ eq(
 eq(T.parseMemos(callout)[0].body, '第一行\n第二行', '自己生成的能被自己读回（往返）');
 eq(T.parseMemos(T.renderListMemo('09:05', '自测'))[0].body, '自测', '列表式往返');
 
-/* ---------- 6b. 多行备忘（用户 2026-10-14：「记录时如果换行，会因为没有时间戳而被忽略」） ---------- */
+/* ---------- 6b. 多行备忘（用户 2026-10-14 定稿：时间戳单独一行，正文整体缩进） ---------- */
 const multi = T.renderListMemo('12:30', '第一行\n第二行\n第三行');
-eq(multi.split('\n')[0], '- 12:30 第一行', '多行：首行带时间戳');
-eq(multi.split('\n')[1], '  第二行', '多行：续行缩进 2 空格（标准列表续行）');
+eq(multi.split('\n')[0], '- 12:30', '多行：时间戳单独一行');
+eq(multi.split('\n')[1], '    第一行', '多行：正文整体缩进 4 空格（第一行也在下一行）');
+eq(multi.split('\n')[2], '    第二行', '多行：后续行同样缩进');
 const multiParsed = T.parseMemos(multi);
 eq(multiParsed.length, 1, '多行备忘解析成 **1 条**（不再把续行当垃圾丢掉）');
 eq(multiParsed[0].body, '第一行\n第二行\n第三行', '多行正文完整读回');
+eq(multiParsed[0].time, '12:30', '时间戳读回正确');
+
+/* 用户实际用例：正文本身就是多级无序列表 —— 缩进必须原样保留（否则层级会错） */
+const nested = T.renderListMemo('12:11', '- A\n  - A1\n  - A2\n- B');
+eq(
+  nested.split('\n'),
+  ['- 12:11', '    - A', '      - A1', '      - A2', '    - B'],
+  '多级列表整体缩进 4 空格，内部层级原样保留'
+);
+const nestedParsed = T.parseMemos(nested);
+eq(nestedParsed.length, 1, '多级列表备忘 = 1 条');
+eq(nestedParsed[0].body, '- A\n  - A1\n  - A2\n- B', '多级列表正文完整往返（层级不丢）');
+
+/* 制表符统一转 4 空格（避免 tab 混排导致层级混乱）—— 单行与多行都要转 */
+eq(T.renderListMemo('09:00', '\t制表符缩进'), '- 09:00     制表符缩进', '单行里正文的制表符也转 4 空格');
+eq(T.renderListMemo('09:00', '甲\n\t乙').split('\n')[2], '        乙', '多行里制表符转 4 空格后叠加块缩进');
+
 /* 多行 + 下一条：两条不能串在一起 */
 const twoMemos = T.renderListMemo('12:30', '甲\n甲的续行') + '\n' + T.renderListMemo('13:00', '乙');
 const twoParsed = T.parseMemos(twoMemos);
@@ -258,6 +276,7 @@ eq(T.parseMemos(withProse).length, 1, '不缩进的正文行不会被并入备�
 eq(T.parseMemos(withProse)[0].body, '备忘内容', '备忘正文保持干净');
 /* 单行行为不变（回归） */
 eq(T.renderListMemo('21:25', '内容'), '- 21:25 内容', '单行仍与旧格式完全一致（兼容 QuickAdd 写入）');
+eq(T.parseMemos(T.renderListMemo('21:25', '内容'))[0].body, '内容', '单行往返正常');
 
 /* ---------- 7. 插入位置 ---------- */
 eq(T.frontmatterEnd(['---', 'a: 1', '---', 'body']), 3, 'frontmatterEnd');
